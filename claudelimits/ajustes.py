@@ -10,6 +10,9 @@ from .config import load_cfg, save_cfg
 from .sistema import round_corners
 
 
+_GUARDAR_LOCK = threading.Lock()
+
+
 class Ajustes:
     """Tamano, color y tema."""
 
@@ -18,13 +21,7 @@ class Ajustes:
         self.user_scale = max(0.7, min(2.0, float(factor)))
         self._relayout()
         if save:
-            val = round(self.user_scale, 3)
-
-            def _persist():
-                cfg = load_cfg()
-                cfg['scale'] = val
-                save_cfg(cfg, durable=False)
-            threading.Thread(target=_persist, daemon=True).start()
+            self._guardar_apariencia()
 
     def _relayout(self):
         """Recalcula geometria, fuentes y render tras cambiar el tamano."""
@@ -120,13 +117,7 @@ class Ajustes:
                  font=('Segoe UI', -px(10))).pack(side='right')
 
         def guardar():
-            val = round(self.user_scale, 3)
-
-            def _persist():
-                cfg = load_cfg()
-                cfg['scale'] = val
-                save_cfg(cfg, durable=False)
-            threading.Thread(target=_persist, daemon=True).start()
+            self._guardar_apariencia()
 
         def hecho():
             guardar()
@@ -153,11 +144,7 @@ class Ajustes:
         self._render_all()
         self.root.update_idletasks()
 
-        def _persist():
-            cfg = load_cfg()
-            cfg['accent'] = nombre
-            save_cfg(cfg, durable=False)
-        threading.Thread(target=_persist, daemon=True).start()
+        self._guardar_apariencia()
 
     def _repintar_ventanas(self):
         """Tras cambiar tema o color, las ventanas abiertas siguen con la
@@ -187,8 +174,20 @@ class Ajustes:
         self.root.update_idletasks()
 
         # 2) y ahora, ya con el widget repintado, persistir en segundo plano
+        self._guardar_apariencia()
+
+    def _guardar_apariencia(self):
+        """Guarda tema, color y tamano tal como estan AHORA.
+
+        Antes cada cambio guardaba solo su valor en un hilo aparte: con varios
+        cambios seguidos los hilos podian terminar en otro orden y quedaba
+        guardado uno anterior. Ahora se guardan los tres juntos, en orden.
+        """
         def _persist():
-            cfg = load_cfg()
-            cfg['theme'] = name
-            save_cfg(cfg, durable=False)
+            with _GUARDAR_LOCK:
+                cfg = load_cfg()
+                cfg['theme'] = T.THEME
+                cfg['accent'] = T.ACCENT_NAME
+                cfg['scale'] = round(self.user_scale, 3)
+                save_cfg(cfg, durable=False)
         threading.Thread(target=_persist, daemon=True).start()
