@@ -8,7 +8,8 @@ from .config import load_cfg, importar_de_version_normal
 from .sistema import (ya_hay_una_instancia, cerrar_versiones_antiguas,
                       limpiar_accesos_directos_viejos, autostart_estado,
                       autostart_activar, autostart_vetado,
-                      autostart_quitar_veto, _mi_ruta, log_error)
+                      autostart_quitar_veto, autostart_quitar_antiguo,
+                      _mi_ruta, log_error)
 from .widget import Glass
 
 
@@ -39,7 +40,13 @@ def main():
         except Exception:
             borrados = []
 
-    # 4) arranque con Windows por registro, y autorreparado si el .exe
+    # 4) arranque con Windows por registro. Primero fuera la entrada con el
+    #    nombre antiguo (ClaudeGlass), o se abririan las dos versiones.
+    try:
+        autostart_quitar_antiguo()
+    except Exception:
+        pass
+    #    Despues, la de esta version, y autorreparado si el .exe
     #    ha cambiado de sitio desde la ultima vez. La de prueba no arranca
     #    sola salvo que se active desde su menu.
     try:

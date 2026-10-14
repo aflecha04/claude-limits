@@ -1,12 +1,12 @@
-ClaudeGlass v3.1
+Claude Limits v3.2 (antes ClaudeGlass)
 
 NUEVO
-- Si agotas el limite semanal o el de un modelo (Fable, Opus...) sale un punto rojo en la barra y el panel te dice cuando vuelve.
-- La barra mide exactamente tu %.
-- Tu color se mantiene cuando Claude duerme... y a veces lo cuenta de otra manera.
-
-ARREGLADO
-- Con portatil y monitores ya no desaparece al enchufar: vuelve a su sitio en cada pantalla.
+- Nuevo nombre: Claude Limits.
+- Inicias sesion desde el propio widget, sin copiar ninguna clave.
+- Varias cuentas de Claude: eliges cual ver desde el menu.
+- Menu renovado.
+- Tu clave se guarda en la caja fuerte de Windows, no en un archivo.
+- Te avisa cuando hay version nueva y se instala con un clic.
 
 INSTALAR
-Doble clic en INSTALAR.bat. No perdeis la sessionKey. Si Windows avisa: Mas informacion > Ejecutar de todas formas.
+Doble clic en INSTALAR.bat. Si venias de ClaudeGlass, se conserva tu cuenta. Si Windows avisa: Mas informacion > Ejecutar de todas formas.

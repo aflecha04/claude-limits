@@ -1,38 +1,38 @@
 @echo off
 setlocal
-title Compilar ClaudeGlass by Flecha
+title Compilar Claude Limits
 cd /d "%~dp0"
 
-set "NAME=ClaudeGlass by Flecha"
+set "NAME=Claude Limits"
 set "PY=%LOCALAPPDATA%\Programs\Python\Python314\python.exe"
 if not exist "%PY%" set "PY=python"
 
 set "WORK=%TEMP%\CGBuild"
 set "OUT=%~dp0PARA COMPARTIR"
-set "LOCAL=%LOCALAPPDATA%\ClaudeGlass"
-set "LOG=%TEMP%\claudeglass_build.log"
+set "LOCAL=%LOCALAPPDATA%\Claude Limits"
+set "LOG=%TEMP%\claudelimits_build.log"
 
 echo ==================================================
-echo    Compilar ClaudeGlass by Flecha
+echo    Compilar Claude Limits
 echo ==================================================
 echo.
 
 echo  [1/5] Cerrando el widget...
 taskkill /IM "%NAME%.exe" /F >nul 2>&1
-taskkill /IM ClaudeGlass.exe /F >nul 2>&1
+taskkill /IM "ClaudeGlass by Flecha.exe" /F >nul 2>&1
 
 echo  [2/5] Preparando carpeta temporal fuera de OneDrive...
 rmdir /S /Q "%WORK%" >nul 2>&1
 mkdir "%WORK%" 2>nul
-copy /Y "%~dp0claude_glass.pyw" "%WORK%\claude_glass.pyw" >nul
-xcopy /E /I /Y /Q "%~dp0claudeglass" "%WORK%\claudeglass" >nul
+copy /Y "%~dp0claude_limits.pyw" "%WORK%\claude_limits.pyw" >nul
+xcopy /E /I /Y /Q "%~dp0claudelimits" "%WORK%\claudelimits" >nul
 
 echo  [3/5] Dependencias y compilacion (1-2 minutos)...
 "%PY%" -m pip install --upgrade pillow pyinstaller > "%LOG%" 2>&1
 pushd "%WORK%"
 "%PY%" -m PyInstaller --onefile --noconsole --name "%NAME%" ^
     --workpath "%WORK%\build" --distpath "%WORK%\dist" --specpath "%WORK%" ^
-    claude_glass.pyw >> "%LOG%" 2>&1
+    claude_limits.pyw >> "%LOG%" 2>&1
 popd
 if not exist "%WORK%\dist\%NAME%.exe" goto :fallo
 

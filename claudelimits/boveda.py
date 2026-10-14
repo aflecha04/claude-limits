@@ -77,7 +77,7 @@ def guardar(nombre, valor):
         c.CredentialBlobSize = len(datos)
         c.CredentialBlob = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ubyte))
         c.Persist = _CRED_PERSIST_LOCAL_MACHINE
-        c.UserName = 'ClaudeGlass'
+        c.UserName = 'Claude Limits'
         if not a.CredWriteW(ctypes.byref(c), 0):
             return False
         return leer(nombre) == valor

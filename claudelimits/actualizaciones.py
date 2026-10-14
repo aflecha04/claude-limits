@@ -21,7 +21,7 @@ from .api import _curl, _split, _status
 from .canal import VERSION
 from .sistema import _mi_ruta
 
-REPO = 'aflecha04/claudeglass'
+REPO = 'aflecha04/claude-limits'
 ULTIMA_URL = f'https://api.github.com/repos/{REPO}/releases/latest'
 COMPROBAR_MS = 6 * 3600 * 1000          # cada 6 horas
 PRIMERA_MS = 15_000                     # la primera, poco despues de abrir
@@ -77,7 +77,7 @@ def instalar(url_exe):
     destino = _mi_ruta()
     if not url_exe or not destino.lower().endswith('.exe'):
         return False
-    carpeta = os.path.join(tempfile.gettempdir(), 'ClaudeGlassUpdate')
+    carpeta = os.path.join(tempfile.gettempdir(), 'ClaudeLimitsUpdate')
     os.makedirs(carpeta, exist_ok=True)
     nuevo = os.path.join(carpeta, 'nuevo.exe')
     r = subprocess.run(['curl', '-s', '-L', '-o', nuevo, url_exe],

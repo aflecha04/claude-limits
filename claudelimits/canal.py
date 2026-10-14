@@ -26,10 +26,15 @@ def _es_prueba():
 
 PRUEBA = _es_prueba()
 
-APP_NAME = 'ClaudeGlass PRUEBA' if PRUEBA else 'ClaudeGlass by Flecha'
+APP_NAME = 'Claude Limits PRUEBA' if PRUEBA else 'Claude Limits'
+
+# Nombre interno (carpetas de datos, caja fuerte, instancia unica). Es el
+# de cuando el widget se llamaba ClaudeGlass: se conserva para que, al
+# cambiar de nombre, nadie pierda sus cuentas ni sus ajustes.
+ID_INTERNO = 'ClaudeGlass PRUEBA' if PRUEBA else 'ClaudeGlass by Flecha'
 
 # Nombre de la entrada en el Administrador de credenciales de Windows
-BOVEDA_CLAVE = f'{APP_NAME}/sessionKey'
+BOVEDA_CLAVE = f'{ID_INTERNO}/sessionKey'
 
 # Marca de instancia unica: distinta para que las dos copias puedan abrirse
 MUTEX_NAME = ('Global\\ClaudeGlassPrueba_SingleInstance' if PRUEBA
@@ -37,3 +42,6 @@ MUTEX_NAME = ('Global\\ClaudeGlassPrueba_SingleInstance' if PRUEBA
 
 # Entrada del registro para arrancar con Windows
 RUN_VALUE = APP_NAME
+# La de las versiones anteriores, que hay que quitar para que no se abran
+# las dos al encender
+RUN_VALUE_ANTIGUO = ID_INTERNO

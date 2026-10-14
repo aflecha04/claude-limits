@@ -7,7 +7,7 @@ import sys
 import subprocess
 from datetime import datetime
 
-from .canal import VERSION, MUTEX_NAME, RUN_VALUE
+from .canal import VERSION, MUTEX_NAME, RUN_VALUE, RUN_VALUE_ANTIGUO
 from .config import cfg_dirs
 
 def _dpi_aware():
@@ -28,7 +28,8 @@ def _dpi_aware():
 # un parpadeo entre el tema claro y el oscuro.
 _MUTEX = None
 
-EXE_NAMES_ANTIGUOS = ('ClaudeGlass.exe', 'ClaudeGlass_ANTIGUO.exe',
+EXE_NAMES_ANTIGUOS = ('ClaudeGlass by Flecha.exe', 'ClaudeGlass.exe',
+                      'ClaudeGlass_ANTIGUO.exe',
                       'claude_usage.exe', 'ClaudeUsage.exe')
 
 
@@ -140,6 +141,24 @@ def autostart_activar(activar=True):
                     winreg.DeleteValue(k, RUN_VALUE)
                 except FileNotFoundError:
                     pass
+        return True
+    except Exception:
+        return False
+
+
+def autostart_quitar_antiguo():
+    """Quita la entrada de arranque con el nombre antiguo (ClaudeGlass)."""
+    if RUN_VALUE_ANTIGUO == RUN_VALUE:
+        return False
+    try:
+        import winreg
+        for clave in (RUN_KEY, APPROVED_KEY):
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, clave, 0,
+                                    winreg.KEY_SET_VALUE) as k:
+                    winreg.DeleteValue(k, RUN_VALUE_ANTIGUO)
+            except FileNotFoundError:
+                pass
         return True
     except Exception:
         return False
