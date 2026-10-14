@@ -11,7 +11,7 @@ from .tema import px, HAVE_PIL
 from .canal import APP_NAME, VERSION
 from .config import (load_cfg, save_cfg, cfg_dirs, CFG_NAME, _read_json,
                      clean_key, key_looks_real)
-from .api import listar_orgs, nombre_org, info_cuenta, KeyExpired
+from .api import listar_orgs, orgs_con_chat, nombre_org, info_cuenta, KeyExpired
 from .config import anadir_cuenta, activar_cuenta, quitar_cuenta
 from . import login
 from .sistema import (_mi_ruta, autostart_activar, autostart_estado,
@@ -232,7 +232,7 @@ class Dialogos:
         def recargar():
             try:
                 c = load_cfg()
-                orgs = [[u, n] for u, n, _chat in listar_orgs(c)]
+                orgs = orgs_con_chat(listar_orgs(c))
             except Exception:
                 return
             if not orgs:

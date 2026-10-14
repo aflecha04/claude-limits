@@ -78,6 +78,13 @@ def listar_orgs(cfg):
     return out
 
 
+def orgs_con_chat(orgs):
+    """[[uuid, nombre]] de las que tienen chat, que son las unicas con
+    consumo que mostrar. El menu solo ofrece elegir si queda mas de una."""
+    utiles = [o for o in orgs if o[2]] or orgs
+    return [[u, n] for u, n, _c in utiles]
+
+
 def resolve_org(cfg):
     """Elige organizacion si aun no hay una y la guarda.
 
@@ -89,7 +96,7 @@ def resolve_org(cfg):
     orgs = listar_orgs(cfg)
     if not orgs:
         raise RuntimeError('no org')
-    cfg['orgs'] = [[u, n] for u, n, _c in orgs]
+    cfg['orgs'] = orgs_con_chat(orgs)
     con_chat = [u for u, _n, c in orgs if c]
     cfg['org_id'] = (con_chat or [orgs[0][0]])[0]
     save_cfg(cfg)
@@ -135,7 +142,7 @@ def fetch_session():
         # la lista de organizaciones se repasa una vez por sesion y cuenta:
         # por si viene de una version que no la guardaba o han cambiado
         try:
-            cfg['orgs'] = [[u, n] for u, n, _c in listar_orgs(cfg)]
+            cfg['orgs'] = orgs_con_chat(listar_orgs(cfg))
             save_cfg(cfg)
             _ORGS_AL_DIA.add(cfg.get('cuenta_activa'))
         except KeyExpired:
