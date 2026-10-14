@@ -16,6 +16,7 @@ import os
 import json
 import time
 import base64
+import shutil
 import socket
 import struct
 import subprocess
@@ -171,6 +172,23 @@ def _json(puerto, ruta):
         return json.loads(r.read().decode())
 
 
+def _cerrar_restos(perfil):
+    """Cierra cualquier proceso del navegador que siga usando el perfil del
+    widget (por ejemplo, si se corto a medias). Nunca toca el navegador
+    normal: se filtra por la carpeta de perfil en la linea de comandos."""
+    filtro = perfil.replace("'", "''")
+    try:
+        subprocess.run(
+            ['powershell', '-NoProfile', '-Command',
+             "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine "
+             f"-like '*{filtro}*' }} | ForEach-Object {{ Stop-Process -Id "
+             "$_.ProcessId -Force -ErrorAction SilentlyContinue }"],
+            capture_output=True, timeout=20,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    except Exception:
+        pass
+
+
 def iniciar_sesion(cancelar=lambda: False):
     """Abre la ventana de inicio de sesion y espera. Devuelve la sessionKey.
 
@@ -181,37 +199,35 @@ def iniciar_sesion(cancelar=lambda: False):
     if not exe:
         raise RuntimeError('No encuentro Edge ni Chrome en este equipo.')
     perfil = _perfil(exe)
+    # perfil nuevo en cada inicio de sesion: sin cookies de la cuenta
+    # anterior, y la ventana se abre directamente en Claude (sin pasar por
+    # una pestana en blanco)
+    _cerrar_restos(perfil)
+    shutil.rmtree(perfil, ignore_errors=True)
     os.makedirs(perfil, exist_ok=True)
     puerto = _puerto_libre()
     proc = subprocess.Popen(
         [exe, f'--remote-debugging-port={puerto}', f'--user-data-dir={perfil}',
-         '--no-first-run', '--no-default-browser-check', '--new-window',
-         '--window-size=520,760', 'about:blank'],
+         '--no-first-run', '--no-default-browser-check',
+         '--window-size=520,760', f'--app={LOGIN_URL}'],
         creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
     navegador = None
     try:
         # 1) esperar a que el navegador abra su puerto
         limite = time.time() + 40
         while True:
+            if cancelar():
+                raise Cancelado()
             try:
                 version = _json(puerto, '/json/version')
                 break
             except Exception:
-                if time.time() > limite or proc.poll() is not None:
+                if time.time() > limite:
                     raise RuntimeError('El navegador no ha respondido.')
                 time.sleep(0.3)
         navegador = _WS(version['webSocketDebuggerUrl'])
 
-        # 2) perfil limpio, para poder entrar con otra cuenta
-        navegador.llamar('Storage.clearCookies')
-
-        # 3) a la pagina de inicio de sesion
-        pagina = next(t for t in _json(puerto, '/json/list') if t.get('type') == 'page')
-        p = _WS(pagina['webSocketDebuggerUrl'])
-        p.llamar('Page.navigate', url=LOGIN_URL)
-        p.cerrar()
-
-        # 4) esperar a que aparezca la cookie de sesion
+        # 2) esperar a que aparezca la cookie de sesion
         limite = time.time() + ESPERA_MAX
         while time.time() < limite:
             if cancelar():
@@ -237,7 +253,5 @@ def iniciar_sesion(cancelar=lambda: False):
         try:
             proc.wait(timeout=5)
         except Exception:
-            try:
-                proc.kill()
-            except Exception:
-                pass
+            pass
+        _cerrar_restos(perfil)

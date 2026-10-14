@@ -342,10 +342,11 @@ class Menu:
             self._mseccion(body, 'Cuentas')
             for c in cuentas:
                 activa = c.get('id') == cfg.get('cuenta_activa')
-                self._mrow(body, c.get('nombre') or c.get('email') or 'Cuenta',
+                # todas iguales: se distinguen por el correo, sin suponer
+                # nada por su dominio
+                self._mrow(body, c.get('email') or c.get('nombre') or 'Cuenta',
                            (lambda cid=c['id']: self._cambiar_cuenta(cid)),
                            icono=('ok' if activa else ' '), bold=activa,
-                           detalle=(c.get('email') or '').split('@')[-1],
                            quitar=(lambda cid=c['id']: self._quitar_cuenta(cid)))
         self._mrow(body, ('Añadir otra cuenta' if cuentas else 'Iniciar sesión'),
                    self._login_dialog, icono='anadir')
