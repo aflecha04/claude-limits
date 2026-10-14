@@ -102,7 +102,7 @@ class Panel:
             bh = m['alto_bar'] * SS
             br = bh // 2
             d.rounded_rectangle([bx0, by0, bx1, by0 + bh], radius=br,
-                                fill=T.TRACK, outline=T.TRACK_SH, width=max(1, SS // 2))
+                                fill=T.TRACK)
             if pct and pct > 0:
                 total = bx1 - bx0
                 relleno = max(bh, int(round(total * min(pct, 100) / 100.0)))
@@ -190,11 +190,11 @@ class Panel:
             marco = tk.Frame(w, bg=T.TINT)
             marco.pack(fill='both', expand=True)
             tk.Label(marco, text='Sin límite semanal', bg=T.TINT, fg=T.INK,
-                     font=('Segoe UI', -px(12), 'bold'), anchor='w').pack(
+                     font=(T.FUENTE, -px(12), 'bold'), anchor='w').pack(
                          fill='x', padx=px(16), pady=(px(16), 0))
             tk.Label(marco, text='Tu cuenta no informa de cuota semanal,\n'
                                'o aún no se ha podido consultar.',
-                     bg=T.TINT, fg=T.SUBTLE, font=('Segoe UI', -px(11)),
+                     bg=T.TINT, fg=T.SUBTLE, font=(T.FUENTE, -px(11)),
                      justify='left', anchor='w').pack(
                          fill='x', padx=px(16), pady=(2, px(16)))
             hijos = (marco,)

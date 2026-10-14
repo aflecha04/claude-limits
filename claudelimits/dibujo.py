@@ -47,17 +47,16 @@ class Dibujo:
         # Un solo borde: antes la tarjeta se dibujaba metida un pixel y con
         # contorno propio, asi que junto al canto de la ventana parecian dos
         # marcos concentricos.
+        # Sin borde propio: Windows 11 ya dibuja el canto de la ventana, y
+        # dos bordes juntos se veian como un contorno sucio.
         d.rounded_rectangle([0, 0, iw - 1, ih - 1], radius=px(12) * SS,
-                            fill=T.TINT,
-                            outline=(T.CARD_BD if T.CARD_BD != T.TINT else None),
-                            width=(SS if T.CARD_BD != T.TINT else 0))
+                            fill=T.TINT)
         x0, x1 = self.bar_x0 * SS, self.bar_x1 * SS
         y0, y1 = self.bar_y * SS, (self.bar_y + self.bar_h) * SS
         rr = (y1 - y0) // 2
-        d.rounded_rectangle([x0, y0, x1, y1], radius=rr,
-                            fill=T.TRACK, outline=T.TRACK_SH, width=SS)
-        d.line([(x0 + rr, y0 + SS), (x1 - rr, y0 + SS)],
-               fill=T.TRACK_SH, width=SS)
+        # Carril liso: el contorno y la sombra interior de antes le daban
+        # un aire de relieve antiguo y emborronaban el canto.
+        d.rounded_rectangle([x0, y0, x1, y1], radius=rr, fill=T.TRACK)
         if len(cache) > 8:
             cache.clear()
         cache[key] = img

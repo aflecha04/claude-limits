@@ -122,12 +122,12 @@ class Dialogos:
                    lambda: (setattr(self, '_dlg', None), w.destroy()))
 
         tk.Label(cuerpo, text='Pega aquí tu sessionKey de claude.ai',
-                 bg=T.MENU_BG, fg=T.MENU_FG, font=('Segoe UI', -px(12)),
+                 bg=T.MENU_BG, fg=T.MENU_FG, font=(T.FUENTE, -px(12)),
                  anchor='w').pack(fill='x', padx=px(14), pady=(px(6), 0))
         tk.Label(cuerpo,
                  text='En claude.ai: icono a la izquierda de la dirección  ›  '
                       'Cookies  ›  sessionKey',
-                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=('Segoe UI', -px(10)),
+                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -px(10)),
                  anchor='w', justify='left').pack(fill='x', padx=px(14),
                                                   pady=(px(2), px(10)))
 
@@ -139,7 +139,7 @@ class Dialogos:
         ent.pack(fill='x', padx=px(10), pady=px(9))
 
         msg = tk.Label(cuerpo, text='', bg=T.MENU_BG, fg=T.CLOSE_HOV,
-                       font=('Segoe UI', -px(10)), wraplength=ancho - px(30),
+                       font=(T.FUENTE, -px(10)), wraplength=ancho - px(30),
                        justify='left', anchor='w')
         msg.pack(fill='x', padx=px(14), pady=(px(6), 0))
 
@@ -205,7 +205,7 @@ class Dialogos:
         self._orgdlg = w
         cuerpo = w._cuerpo
         tk.Label(cuerpo, text='¿De qué organización quieres ver el consumo?',
-                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=('Segoe UI', -px(11)),
+                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -px(11)),
                  anchor='w').pack(fill='x', padx=px(14), pady=(px(4), px(6)))
         lista = tk.Frame(cuerpo, bg=T.MENU_BG)
         lista.pack(fill='x')
@@ -272,7 +272,7 @@ class Dialogos:
         cuerpo = w._cuerpo
         tk.Label(cuerpo, text=f'¿Quitar {nombre} del widget?\n'
                               'Podrás volver a añadirla cuando quieras.',
-                 bg=T.MENU_BG, fg=T.MENU_FG, font=('Segoe UI', -px(12)),
+                 bg=T.MENU_BG, fg=T.MENU_FG, font=(T.FUENTE, -px(12)),
                  justify='left', anchor='w', wraplength=px(290)).pack(
                      fill='x', padx=px(14), pady=(px(6), 0))
 
@@ -304,7 +304,7 @@ class Dialogos:
         cuerpo = w._cuerpo
         texto = tk.Label(cuerpo, bg=T.MENU_BG, fg=T.MENU_FG, justify='left',
                          anchor='w', wraplength=px(330),
-                         font=('Segoe UI', -px(12)),
+                         font=(T.FUENTE, -px(12)),
                          text='Se abrirá una ventana para entrar en Claude con '
                               'la cuenta que quieras. Cuando entres, se cerrará '
                               'sola y el widget quedará conectado.')
@@ -315,7 +315,7 @@ class Dialogos:
         bf.pack(pady=(px(14), px(4)))
         manual = tk.Label(cuerpo, text='o pega la sessionKey a mano',
                           bg=T.MENU_BG, fg=T.MENU_MUTED, cursor='hand2',
-                          font=('Segoe UI', -px(10), 'underline'))
+                          font=(T.FUENTE, -px(10), 'underline'))
         manual.pack(pady=(0, px(12)))
 
         def cerrar():

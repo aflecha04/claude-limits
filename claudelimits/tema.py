@@ -36,11 +36,11 @@ THEMES = {
         PANEL_BG='#eef1f7', TILE_BD='#dde3ec',
         ACCENT='#c2542f',
         TEXT_ON_FILL='#ffffff',
-        MENU_BG='#ffffff', MENU_BD='#e2e8f0', MENU_FG='#0b1220',
+        MENU_BG='#fbfbfc', MENU_BD='#e2e8f0', MENU_FG='#1f2733',
         MENU_MUTED='#5b6b82', MENU_HOVER='#fdf0ea', MENU_ACCENT='#c2542f',
         MENU_SEP='#eef1f6',
-        TINT='#ffffff', CARD_BD='#dde3ec',
-        INK='#0b1220', LABEL='#5b6b82', SUBTLE='#5b6b82',
+        TINT='#f9fafb', CARD_BD='#dde3ec',
+        INK='#1f2733', LABEL='#5b6b82', SUBTLE='#5b6b82',
         TRACK='#dbe3ef', TRACK_SH='#c3cddd', TIME='#3f4a5c', BTN='#5b6b82', BTN_HOV='#0f172a', CLOSE_HOV='#d1344b',
         BAR_START='#c2542f', BAR_END='#96391d',
         ALPHA=1.0,
@@ -99,7 +99,9 @@ def apply_accent(nombre):
     ACCENT_NAME = nombre if nombre in ACCENTS else 'coral'
     _, oscuro, claro = ACCENTS[ACCENT_NAME]
     ini, fin, suave, sobre = oscuro if THEME == 'dark' else claro
-    BAR_START, BAR_END = ini, fin
+    # Relleno liso, de un solo color: el degradado oscurecia el final de la
+    # barra y le quitaba limpieza (mas aun en el tema claro).
+    BAR_START = BAR_END = ini
     ACCENT = MENU_ACCENT = suave
     TEXT_ON_FILL = sobre
 
@@ -137,3 +139,19 @@ def _mix(c1, c2, t):
     a, b = _hex(c1), _hex(c2)
     return '#%02x%02x%02x' % tuple(int(round(a[i] + (b[i] - a[i]) * t))
                                    for i in range(3))
+
+
+# ─── Tipografia ─────────────────────────────────────────────────────────
+# Segoe UI Variable es la letra de Windows 11, dibujada para verse nitida
+# en tamanos pequenos. En Windows 10 no existe y se usa Segoe UI.
+FUENTE = 'Segoe UI'
+
+
+def elegir_fuente(root):
+    global FUENTE
+    try:
+        import tkinter.font as tkfont
+        if 'Segoe UI Variable Text' in tkfont.families(root):
+            FUENTE = 'Segoe UI Variable Text'
+    except Exception:
+        pass

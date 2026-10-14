@@ -33,9 +33,9 @@ class Ajustes:
         self.f_sub.config(size=-px(13))
         self.f_msg.config(size=-px(11))
         self.f_pnum.config(size=-px(18))
-        self.f_ptit.config(size=-px(11))
-        self.f_pcd.config(size=-px(11))
-        self.f_icon.config(size=-px(14))
+        self.f_ptit.config(size=-px(12))
+        self.f_pcd.config(size=-px(12))
+        self.f_icon.config(size=-px(10 if self._fuente_iconos() else 14))
 
         cy = T.H // 2
         self._geometria_barra()
@@ -63,7 +63,7 @@ class Ajustes:
 
         valor = tk.Label(cuerpo, text=f'{int(round(self.user_scale * 100))} %',
                          bg=T.MENU_BG, fg=T.MENU_ACCENT,
-                         font=('Segoe UI', -px(30), 'bold'))
+                         font=(T.FUENTE, -px(30), 'bold'))
         valor.pack(pady=(px(6), px(2)))
 
         # deslizador dibujado a mano: el de Tk trae su propio aspecto y
@@ -112,9 +112,9 @@ class Ajustes:
         ext = tk.Frame(cuerpo, bg=T.MENU_BG)
         ext.pack(fill='x', padx=px(18))
         tk.Label(ext, text='70 %', bg=T.MENU_BG, fg=T.MENU_MUTED,
-                 font=('Segoe UI', -px(10))).pack(side='left')
+                 font=(T.FUENTE, -px(10))).pack(side='left')
         tk.Label(ext, text='200 %', bg=T.MENU_BG, fg=T.MENU_MUTED,
-                 font=('Segoe UI', -px(10))).pack(side='right')
+                 font=(T.FUENTE, -px(10))).pack(side='right')
 
         def guardar():
             self._guardar_apariencia()

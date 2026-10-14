@@ -36,6 +36,7 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
         self.root = tk.Tk()
         self.root.title(APP_NAME)
         self.root.overrideredirect(True)
+        T.elegir_fuente(self.root)
         self.root.attributes('-topmost', True)
 
         # escala segun el DPI real de la pantalla (125%, 150%, 175%...)
@@ -79,13 +80,18 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
         # fuentes: tamano NEGATIVO = pixeles, para que no las escale el DPI
         # Escala tipografica: la cifra manda, la unidad acompana y el
         # rotulo se aparta. Las cifras en familia ancha, los textos en Segoe UI.
-        self.f_pct   = tkfont.Font(family='Segoe UI', size=-px(13), weight='bold')
-        self.f_sub   = tkfont.Font(family='Segoe UI', size=-px(13))
-        self.f_msg   = tkfont.Font(family='Segoe UI', size=-px(11), weight='bold')
-        self.f_pnum  = tkfont.Font(family='Segoe UI', size=-px(18), weight='bold')
-        self.f_ptit  = tkfont.Font(family='Segoe UI', size=-px(11))
-        self.f_pcd   = tkfont.Font(family='Segoe UI', size=-px(11))
-        self.f_icon = tkfont.Font(family='Segoe UI Symbol', size=-px(14))
+        self.f_pct   = tkfont.Font(family=T.FUENTE, size=-px(13), weight='bold')
+        self.f_sub   = tkfont.Font(family=T.FUENTE, size=-px(13))
+        self.f_msg   = tkfont.Font(family=T.FUENTE, size=-px(11), weight='bold')
+        self.f_pnum  = tkfont.Font(family=T.FUENTE, size=-px(18), weight='bold')
+        self.f_ptit  = tkfont.Font(family=T.FUENTE, size=-px(12))
+        self.f_pcd   = tkfont.Font(family=T.FUENTE, size=-px(12))
+        # la X con la fuente de iconos de Windows, hecha para tamanos
+        # pequenos; la de simbolos de antes salia fina y difusa
+        fi = self._fuente_iconos()
+        self._x_glifo = '' if fi else '✕'
+        self.f_icon = tkfont.Font(family=(fi or 'Segoe UI Symbol'),
+                                  size=-px(10 if fi else 14))
 
         self.pct = None
         self.reset_iso = None
@@ -131,7 +137,7 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
 
         self._shape_id = c.create_image(0, 0, anchor='nw', tags='shape')
 
-        self.id_close = c.create_text(T.W - T.PAD, cy, text='✕', anchor='e',
+        self.id_close = c.create_text(T.W - T.PAD, cy, text=self._x_glifo, anchor='e',
                                       fill=T.BTN, font=self.f_icon)
 
 

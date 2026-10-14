@@ -162,7 +162,7 @@ class Menu:
             li.pack(side='left', padx=(px(8), 0))
             partes.append(li)
         lt = tk.Label(f, text=text, bg=T.MENU_BG, fg=color, anchor='w',
-                      font=('Segoe UI', -px(12), 'bold' if (bold or acento)
+                      font=(T.FUENTE, -px(12), 'bold' if (bold or acento)
                             else 'normal'))
         lt.pack(side='left', padx=(px(6) if (icono and fi) else px(12), 0),
                 pady=px(7))
@@ -172,7 +172,7 @@ class Menu:
         if quitar is not None:
             lq = tk.Label(f, text=(self.ICONOS['quitar'] if fi else '✕'),
                           bg=T.MENU_BG, fg=T.MENU_BG,
-                          font=((fi, -px(10)) if fi else ('Segoe UI', -px(11))))
+                          font=((fi, -px(10)) if fi else (T.FUENTE, -px(11))))
             lq.pack(side='right', padx=(0, px(10)))
             lq.bind('<Button-1>', lambda e: (self._close_menu(),
                                              self.root.after(1, quitar),
@@ -191,7 +191,7 @@ class Menu:
         elif mark or detalle:
             lm = tk.Label(f, text=(mark or detalle), bg=T.MENU_BG,
                           fg=(T.MENU_ACCENT if mark else T.MENU_MUTED),
-                          font=('Segoe UI', -px(11)))
+                          font=(T.FUENTE, -px(11)))
         if lm is not None:
             lm.pack(side='right', padx=(0, px(12) if lq is None else px(4)))
             partes.append(lm)
@@ -232,7 +232,7 @@ class Menu:
 
     def _mseccion(self, parent, texto):
         tk.Label(parent, text=texto.upper(), bg=T.MENU_BG, fg=T.MENU_MUTED,
-                 font=('Segoe UI', -px(9), 'bold'), anchor='w').pack(
+                 font=(T.FUENTE, -px(9), 'bold'), anchor='w').pack(
                      fill='x', padx=px(18), pady=(px(2), px(3)))
 
     def _mlinea(self, parent, etiqueta):
@@ -240,7 +240,7 @@ class Menu:
         f = tk.Frame(parent, bg=T.MENU_BG)
         f.pack(fill='x', padx=(px(18), px(14)), pady=px(4))
         tk.Label(f, text=etiqueta, bg=T.MENU_BG, fg=T.MENU_FG,
-                 font=('Segoe UI', -px(12))).pack(side='left')
+                 font=(T.FUENTE, -px(12))).pack(side='left')
         hueco = tk.Frame(f, bg=T.MENU_BG)
         hueco.pack(side='right')
         return hueco
@@ -255,7 +255,7 @@ class Menu:
             fondo = T.MENU_HOVER if act else T.TRACK
             chip = tk.Label(caja, text=etiqueta, bg=fondo,
                             fg=(T.MENU_FG if act else T.MENU_MUTED),
-                            font=('Segoe UI', -px(11), 'bold' if act else 'normal'),
+                            font=(T.FUENTE, -px(11), 'bold' if act else 'normal'),
                             padx=px(8), pady=px(3), cursor='hand2')
             chip.pack(side='left')
             if not act:
@@ -290,13 +290,20 @@ class Menu:
         con el cambio a la vista: asi se pueden tocar varias cosas seguidas
         (tema, color, tamano...) sin tener que reabrirlo cada vez."""
         m = getattr(self, '_menu_win', None)
-        pos = (m.winfo_x(), m.winfo_y()) if (m is not None and m.winfo_exists()) else None
-        self._close_menu()
+        vivo = m is not None and m.winfo_exists()
+        if not (reabrir and vivo):
+            self._close_menu()
+            self.root.after(1, accion)
+            return
+        # Sin parpadeo: el menu viejo se queda a la vista mientras se aplica
+        # el cambio y se dibuja el nuevo, invisible, encima; solo entonces se
+        # muestra el nuevo y se quita el viejo.
+        m.unbind('<FocusOut>')
+        pos = (m.winfo_x(), m.winfo_y())
 
         def hacer():
             accion()
-            if reabrir and pos:
-                self.root.after(20, lambda: self._popup(pos=pos))
+            self._popup(pos=pos, previo=m)
         self.root.after(1, hacer)
 
     def _mcabecera(self, parent, cfg):
@@ -312,7 +319,7 @@ class Menu:
             nombre, correo = 'Sin cuenta', 'Inicia sesión para empezar'
         av = tk.Label(hd, bg=T.MENU_BG, bd=0, compound='center',
                       text=(nombre[:1].upper() if activa else '?'),
-                      fg=T.TEXT_ON_FILL, font=('Segoe UI', -px(14), 'bold'))
+                      fg=T.TEXT_ON_FILL, font=(T.FUENTE, -px(14), 'bold'))
         im = self._avatar_img(nombre[:1], T.MENU_BG)
         if im is not None:
             av.configure(image=im)
@@ -323,21 +330,24 @@ class Menu:
         fila = tk.Frame(txt, bg=T.MENU_BG)
         fila.pack(fill='x')
         tk.Label(fila, text=nombre, bg=T.MENU_BG, fg=T.MENU_FG, anchor='w',
-                 font=('Segoe UI', -px(13), 'bold')).pack(side='left')
+                 font=(T.FUENTE, -px(13), 'bold')).pack(side='left')
         tk.Label(fila, text=(f'PRUEBA {VERSION}' if PRUEBA else f'v{VERSION}'),
                  bg=T.MENU_BG, fg=(T.MENU_ACCENT if PRUEBA else T.MENU_MUTED),
-                 font=('Segoe UI', -px(9), 'bold' if PRUEBA else 'normal')).pack(
+                 font=(T.FUENTE, -px(9), 'bold' if PRUEBA else 'normal')).pack(
                      side='right')
         tk.Label(txt, text=correo, bg=T.MENU_BG, fg=T.MENU_MUTED, anchor='w',
-                 font=('Segoe UI', -px(11))).pack(fill='x')
+                 font=(T.FUENTE, -px(11))).pack(fill='x')
 
-    def _popup(self, e=None, pos=None):
+    def _popup(self, e=None, pos=None, previo=None):
         self._panel_ocultar()
-        self._close_menu()
+        if previo is None:
+            self._close_menu()
         cfg = load_cfg()
         m = tk.Toplevel(self.root)
         self._menu_win = m
         m.overrideredirect(True)
+        if previo is not None:
+            m.attributes('-alpha', 0.0)       # se dibuja oculto (ver _y_reabrir)
         m.attributes('-topmost', True)
         m.configure(bg=T.MENU_BD)
         body = tk.Frame(m, bg=T.MENU_BG, width=px(290))
@@ -406,6 +416,13 @@ class Menu:
             self._place(m, getattr(e, 'x_root', self.root.winfo_x()),
                         getattr(e, 'y_root', self.root.winfo_y()))
         round_corners(m)
+        if previo is not None:
+            m.update_idletasks()
+            m.attributes('-alpha', 1.0)
+            try:
+                previo.destroy()
+            except Exception:
+                pass
 
         m.bind('<Escape>', self._close_menu)
         try:
@@ -436,9 +453,9 @@ class Menu:
         cab = tk.Frame(cuerpo, bg=T.MENU_BG)
         cab.pack(fill='x', padx=(px(14), px(10)), pady=(px(10), px(2)))
         tk.Label(cab, text=titulo, bg=T.MENU_BG, fg=T.MENU_FG,
-                 font=('Segoe UI', -px(13), 'bold')).pack(side='left')
+                 font=(T.FUENTE, -px(13), 'bold')).pack(side='left')
         cerrar = tk.Label(cab, text='\u2715', bg=T.MENU_BG, fg=T.MENU_MUTED,
-                          font=('Segoe UI', -px(12)), cursor='hand2')
+                          font=(T.FUENTE, -px(12)), cursor='hand2')
         cerrar.pack(side='right')
         cerrar.bind('<Button-1>', lambda e: w.destroy())
         cerrar.bind('<Enter>', lambda e: cerrar.configure(fg=T.CLOSE_HOV))
@@ -463,7 +480,7 @@ class Menu:
         b = tk.Label(parent, text=texto, cursor='hand2',
                      bg=(T.MENU_ACCENT if primario else T.MENU_HOVER),
                      fg=(T.TEXT_ON_FILL if primario else T.MENU_FG),
-                     font=('Segoe UI', -px(12), 'bold' if primario else 'normal'),
+                     font=(T.FUENTE, -px(12), 'bold' if primario else 'normal'),
                      padx=px(16), pady=px(7))
         b.bind('<Button-1>', lambda e: cmd())
         if not primario:
