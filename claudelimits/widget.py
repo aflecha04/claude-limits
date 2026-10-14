@@ -106,6 +106,7 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
         self._txtwin = None
         self._szdlg = None
         self._orgdlg = None
+        self._mrep = []              # repintado del menu (ver menu.py)
         self.nueva_version = None    # (version, url_exe, url_pagina)
         self._dlg = None
         self._menu_win = None

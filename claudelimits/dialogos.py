@@ -224,7 +224,7 @@ class Dialogos:
                 h.destroy()
             for uuid, nombre in orgs:
                 self._mrow(lista, nombre, lambda u=uuid: elegir(u),
-                           punto=(uuid == actual))
+                           punto=(lambda a=(uuid == actual): a))
 
         cfg = load_cfg()
         pintar(cfg.get('orgs') or [], cfg.get('org_id'))
