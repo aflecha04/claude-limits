@@ -31,7 +31,35 @@ class Cancelado(Exception):
     """Se cerro la ventana del navegador sin iniciar sesion."""
 
 
+# Navegadores que entienden el puerto de depuracion (todos los basados en
+# Chromium). Firefox no: si es el principal, se usa Edge, que viene con Windows.
+CHROMIUM = ('chrome.exe', 'msedge.exe', 'brave.exe', 'opera.exe',
+            'launcher.exe', 'vivaldi.exe', 'arc.exe', 'chromium.exe')
+
+
+def _navegador_principal():
+    """Ruta del navegador predeterminado de Windows, o None."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                            r'Software\Microsoft\Windows\Shell\Associations'
+                            r'\UrlAssociations\https\UserChoice') as k:
+            progid, _ = winreg.QueryValueEx(k, 'ProgId')
+        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT,
+                            progid + r'\shell\open\command') as k:
+            orden, _ = winreg.QueryValueEx(k, '')
+        m = orden.split('"')[1] if orden.startswith('"') else orden.split(' ')[0]
+        if os.path.exists(m) and os.path.basename(m).lower() in CHROMIUM:
+            return m
+    except Exception:
+        pass
+    return None
+
+
 def _navegador():
+    principal = _navegador_principal()
+    if principal:
+        return principal
     candidatos = []
     for base in (os.environ.get('PROGRAMFILES(X86)'), os.environ.get('PROGRAMFILES'),
                  os.environ.get('LOCALAPPDATA')):
@@ -44,10 +72,12 @@ def _navegador():
     return None
 
 
-def _perfil():
+def _perfil(exe):
+    """Perfil propio del widget, uno por navegador: Chrome no arranca con
+    una carpeta de perfil creada por Edge."""
     la = os.environ.get('LOCALAPPDATA') or os.path.expanduser('~')
     return os.path.join(la, 'ClaudeGlass PRUEBA' if PRUEBA else 'ClaudeGlass',
-                        'navegador')
+                        'navegador', os.path.splitext(os.path.basename(exe))[0])
 
 
 def _puerto_libre():
@@ -150,7 +180,7 @@ def iniciar_sesion(cancelar=lambda: False):
     exe = _navegador()
     if not exe:
         raise RuntimeError('No encuentro Edge ni Chrome en este equipo.')
-    perfil = _perfil()
+    perfil = _perfil(exe)
     os.makedirs(perfil, exist_ok=True)
     puerto = _puerto_libre()
     proc = subprocess.Popen(
@@ -161,7 +191,7 @@ def iniciar_sesion(cancelar=lambda: False):
     navegador = None
     try:
         # 1) esperar a que el navegador abra su puerto
-        limite = time.time() + 20
+        limite = time.time() + 40
         while True:
             try:
                 version = _json(puerto, '/json/version')
