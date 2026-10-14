@@ -210,6 +210,9 @@ class Menu:
                     lm._img = im
 
         def clic(_e=None):
+            if punto is not None:          # interruptor: el menu sigue abierto
+                self._y_reabrir(cmd)
+                return
             self._close_menu()
             self.root.after(1, cmd)
 
@@ -258,8 +261,8 @@ class Menu:
             if not act:
                 chip.bind('<Enter>', lambda e, c=chip: c.configure(fg=T.MENU_FG))
                 chip.bind('<Leave>', lambda e, c=chip: c.configure(fg=T.MENU_MUTED))
-            chip.bind('<Button-1>', lambda e, v=valor: (
-                self._close_menu(), self.root.after(1, lambda: accion(v))))
+            chip.bind('<Button-1>', lambda e, v=valor: self._y_reabrir(
+                lambda: accion(v), reabrir=(v != 'barra')))
         return caja
 
     def _mcolores(self, parent):
@@ -278,10 +281,23 @@ class Menu:
                 punto = tk.Label(fila, text='●', fg=muestra,
                                  bg=T.MENU_BG, cursor='hand2')
             punto.pack(side='left', padx=(px(1), 0))
-            punto.bind('<Button-1>', lambda e, k=clave: (
-                self._close_menu(),
-                self.root.after(1, lambda: self._set_accent(k))))
+            punto.bind('<Button-1>', lambda e, k=clave: self._y_reabrir(
+                lambda: self._set_accent(k)))
         return fila
+
+    def _y_reabrir(self, accion, reabrir=True):
+        """Aplica un ajuste y vuelve a abrir el menu en el mismo sitio, ya
+        con el cambio a la vista: asi se pueden tocar varias cosas seguidas
+        (tema, color, tamano...) sin tener que reabrirlo cada vez."""
+        m = getattr(self, '_menu_win', None)
+        pos = (m.winfo_x(), m.winfo_y()) if (m is not None and m.winfo_exists()) else None
+        self._close_menu()
+
+        def hacer():
+            accion()
+            if reabrir and pos:
+                self.root.after(20, lambda: self._popup(pos=pos))
+        self.root.after(1, hacer)
 
     def _mcabecera(self, parent, cfg):
         """Cuenta activa arriba del todo: inicial, nombre y correo."""
@@ -315,7 +331,7 @@ class Menu:
         tk.Label(txt, text=correo, bg=T.MENU_BG, fg=T.MENU_MUTED, anchor='w',
                  font=('Segoe UI', -px(11))).pack(fill='x')
 
-    def _popup(self, e=None):
+    def _popup(self, e=None, pos=None):
         self._panel_ocultar()
         self._close_menu()
         cfg = load_cfg()
@@ -383,8 +399,12 @@ class Menu:
         ancho = max(px(290), body.winfo_reqwidth() + 2)
         m.geometry(f'{ancho}x{body.winfo_reqheight() + 2}')
 
-        self._place(m, getattr(e, 'x_root', self.root.winfo_x()),
-                    getattr(e, 'y_root', self.root.winfo_y()))
+        if pos:
+            # reabierto tras un ajuste: en el mismo sitio, sin saltos
+            m.geometry(f'+{pos[0]}+{pos[1]}')
+        else:
+            self._place(m, getattr(e, 'x_root', self.root.winfo_x()),
+                        getattr(e, 'y_root', self.root.winfo_y()))
         round_corners(m)
 
         m.bind('<Escape>', self._close_menu)
