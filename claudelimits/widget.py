@@ -46,6 +46,7 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
             dpi = 96.0
         self.root.tk.call('tk', 'scaling', 1.0)   # fuentes en px, sin sorpresas
         self.dpi = dpi or 96.0
+        T.DPI_UI = self.dpi / 96.0
         # escala del usuario (barrita del menu), sobre la escala del sistema
         try:
             self.user_scale = float(cfg.get('scale', 1.0))

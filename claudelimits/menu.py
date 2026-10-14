@@ -5,11 +5,49 @@ import tkinter as tk
 import tkinter.font as tkfont
 
 from . import tema as T
-from .tema import px, ACCENTS, HAVE_PIL, Image, ImageDraw, ImageTk
+from .tema import mpx, ACCENTS, HAVE_PIL, Image, ImageDraw, ImageTk
 from .canal import VERSION, PRUEBA
 from .config import load_cfg
 from .api import nombre_org, nombre_corto_org
 from .sistema import work_area, round_corners, _mi_ruta, autostart_estado
+
+
+def _congelar(win, congelar):
+    """Congela (o descongela y repinta de una vez) una ventana de Windows."""
+    try:
+        import ctypes
+        u = ctypes.windll.user32
+        hwnd = u.GetAncestor(win.winfo_id(), 2)            # GA_ROOT
+        u.SendMessageW(hwnd, 0x000B, 0 if congelar else 1, 0)   # WM_SETREDRAW
+        if not congelar:
+            # RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW
+            u.RedrawWindow(hwnd, None, None, 0x4 | 0x400 | 0x1 | 0x80 | 0x100)
+    except Exception:
+        pass
+
+
+def _foto_encima(root, win):
+    """Ventanita sin marco con una captura de 'win', justo encima de ella."""
+    if not HAVE_PIL:
+        return None
+    try:
+        from PIL import ImageGrab
+        x, y = win.winfo_rootx(), win.winfo_rooty()
+        w, h = win.winfo_width(), win.winfo_height()
+        img = ImageGrab.grab((x, y, x + w, y + h), all_screens=True)
+        f = tk.Toplevel(root)
+        f.overrideredirect(True)
+        f.attributes('-topmost', True)
+        f.geometry(f'{w}x{h}+{x}+{y}')
+        foto = ImageTk.PhotoImage(img)
+        lb = tk.Label(f, image=foto, bd=0, highlightthickness=0)
+        lb._foto = foto
+        lb.pack()
+        round_corners(f)
+        f.update()
+        return f
+    except Exception:
+        return None
 
 
 class Menu:
@@ -102,7 +140,7 @@ class Menu:
 
     def _interruptor_img(self, activo, fondo):
         """Interruptor tipo Windows 11: pastilla con bolita."""
-        w, h = px(30), px(16)
+        w, h = mpx(30), mpx(16)
 
         def dib(d, SS):
             caja = [SS, SS, w * SS - SS, h * SS - SS]
@@ -124,14 +162,14 @@ class Menu:
 
     def _avatar_img(self, letra, fondo):
         """Circulo del color elegido con la inicial de la cuenta."""
-        d_ = px(34)
+        d_ = mpx(34)
 
         def dib(d, SS):
             d.ellipse([0, 0, d_ * SS - 1, d_ * SS - 1], fill=T.MENU_ACCENT)
         return self._img_cache(('av', T.MENU_ACCENT), dib, d_, d_, fondo)
 
     def _color_img(self, color, activo, fondo):
-        d_ = px(22)
+        d_ = mpx(22)
 
         def dib(d, SS):
             n = d_ * SS
@@ -150,7 +188,7 @@ class Menu:
         o un interruptor ('punto' True/False). 'quitar' anade una X que
         solo aparece al pasar el raton."""
         f = tk.Frame(parent, bg=T.MENU_BG, cursor='hand2')
-        f.pack(fill='x', padx=px(6))
+        f.pack(fill='x', padx=mpx(6))
         partes = [f]
         color = (T.MENU_ACCENT if acento else
                  T.MENU_MUTED if muted else T.MENU_FG)
@@ -158,22 +196,22 @@ class Menu:
         if icono and fi:
             li = tk.Label(f, text=self.ICONOS.get(icono, icono), bg=T.MENU_BG,
                           fg=(T.MENU_ACCENT if acento else T.MENU_MUTED),
-                          font=(fi, -px(13)), width=2)
-            li.pack(side='left', padx=(px(8), 0))
+                          font=(fi, -mpx(13)), width=2)
+            li.pack(side='left', padx=(mpx(8), 0))
             partes.append(li)
         lt = tk.Label(f, text=text, bg=T.MENU_BG, fg=color, anchor='w',
-                      font=(T.FUENTE, -px(12), 'bold' if (bold or acento)
+                      font=(T.FUENTE, -mpx(12), 'bold' if (bold or acento)
                             else 'normal'))
-        lt.pack(side='left', padx=(px(6) if (icono and fi) else px(12), 0),
-                pady=px(7))
+        lt.pack(side='left', padx=(mpx(6) if (icono and fi) else mpx(12), 0),
+                pady=mpx(7))
         partes.append(lt)
 
         lq = None
         if quitar is not None:
             lq = tk.Label(f, text=(self.ICONOS['quitar'] if fi else '✕'),
                           bg=T.MENU_BG, fg=T.MENU_BG,
-                          font=((fi, -px(10)) if fi else (T.FUENTE, -px(11))))
-            lq.pack(side='right', padx=(0, px(10)))
+                          font=((fi, -mpx(10)) if fi else (T.FUENTE, -mpx(11))))
+            lq.pack(side='right', padx=(0, mpx(10)))
             lq.bind('<Button-1>', lambda e: (self._close_menu(),
                                              self.root.after(1, quitar),
                                              'break')[-1])
@@ -191,9 +229,9 @@ class Menu:
         elif mark or detalle:
             lm = tk.Label(f, text=(mark or detalle), bg=T.MENU_BG,
                           fg=(T.MENU_ACCENT if mark else T.MENU_MUTED),
-                          font=(T.FUENTE, -px(11)))
+                          font=(T.FUENTE, -mpx(11)))
         if lm is not None:
-            lm.pack(side='right', padx=(0, px(12) if lq is None else px(4)))
+            lm.pack(side='right', padx=(0, mpx(12) if lq is None else mpx(4)))
             partes.append(lm)
 
         def pintar(bg):
@@ -228,19 +266,19 @@ class Menu:
 
     def _msep(self, parent):
         tk.Frame(parent, bg=T.MENU_SEP, height=1).pack(
-            fill='x', padx=px(14), pady=px(6))
+            fill='x', padx=mpx(14), pady=mpx(6))
 
     def _mseccion(self, parent, texto):
         tk.Label(parent, text=texto.upper(), bg=T.MENU_BG, fg=T.MENU_MUTED,
-                 font=(T.FUENTE, -px(9), 'bold'), anchor='w').pack(
-                     fill='x', padx=px(18), pady=(px(2), px(3)))
+                 font=(T.FUENTE, -mpx(9), 'bold'), anchor='w').pack(
+                     fill='x', padx=mpx(18), pady=(mpx(2), mpx(3)))
 
     def _mlinea(self, parent, etiqueta):
         """Fila 'Etiqueta ........ control'. Devuelve el hueco del control."""
         f = tk.Frame(parent, bg=T.MENU_BG)
-        f.pack(fill='x', padx=(px(18), px(14)), pady=px(4))
+        f.pack(fill='x', padx=(mpx(18), mpx(14)), pady=mpx(4))
         tk.Label(f, text=etiqueta, bg=T.MENU_BG, fg=T.MENU_FG,
-                 font=(T.FUENTE, -px(12))).pack(side='left')
+                 font=(T.FUENTE, -mpx(12))).pack(side='left')
         hueco = tk.Frame(f, bg=T.MENU_BG)
         hueco.pack(side='right')
         return hueco
@@ -248,15 +286,15 @@ class Menu:
     def _mchips(self, parent, opciones, activo, accion):
         """Control segmentado: una pastilla hundida con la opcion activa
         en relieve, como los selectores de Windows 11."""
-        caja = tk.Frame(parent, bg=T.TRACK, padx=px(2), pady=px(2))
+        caja = tk.Frame(parent, bg=T.TRACK, padx=mpx(2), pady=mpx(2))
         caja.pack(side='right')
         for etiqueta, valor in opciones:
             act = (valor == activo)
             fondo = T.MENU_HOVER if act else T.TRACK
             chip = tk.Label(caja, text=etiqueta, bg=fondo,
                             fg=(T.MENU_FG if act else T.MENU_MUTED),
-                            font=(T.FUENTE, -px(11), 'bold' if act else 'normal'),
-                            padx=px(8), pady=px(3), cursor='hand2')
+                            font=(T.FUENTE, -mpx(11), 'bold' if act else 'normal'),
+                            padx=mpx(8), pady=mpx(3), cursor='hand2')
             chip.pack(side='left')
             if not act:
                 chip.bind('<Enter>', lambda e, c=chip: c.configure(fg=T.MENU_FG))
@@ -280,30 +318,49 @@ class Menu:
             else:
                 punto = tk.Label(fila, text='●', fg=muestra,
                                  bg=T.MENU_BG, cursor='hand2')
-            punto.pack(side='left', padx=(px(1), 0))
+            punto.pack(side='left', padx=(mpx(1), 0))
             punto.bind('<Button-1>', lambda e, k=clave: self._y_reabrir(
                 lambda: self._set_accent(k)))
         return fila
 
     def _y_reabrir(self, accion, reabrir=True):
-        """Aplica un ajuste y vuelve a abrir el menu en el mismo sitio, ya
-        con el cambio a la vista: asi se pueden tocar varias cosas seguidas
-        (tema, color, tamano...) sin tener que reabrirlo cada vez."""
+        """Aplica un ajuste y deja el menu abierto con el cambio a la vista:
+        asi se pueden tocar varias cosas seguidas (tema, color, tamano...).
+
+        El menu NO se cierra ni se vuelve a abrir: se rehace su contenido
+        dentro de la misma ventana con el pintado congelado, y se descongela
+        cuando ya esta todo listo. Medido fotograma a fotograma: cerrar y
+        abrir una ventana nueva dejaba ver unos instantes en blanco.
+        """
         m = getattr(self, '_menu_win', None)
         vivo = m is not None and m.winfo_exists()
         if not (reabrir and vivo):
             self._close_menu()
             self.root.after(1, accion)
             return
-        # Sin parpadeo: el menu viejo se queda a la vista mientras se aplica
-        # el cambio y se dibuja el nuevo, invisible, encima; solo entonces se
-        # muestra el nuevo y se quita el viejo.
-        m.unbind('<FocusOut>')
-        pos = (m.winfo_x(), m.winfo_y())
+
+        # Una "foto" del menu tal como esta lo tapa mientras se rehace por
+        # debajo; cuando el nuevo ya esta pintado, se quita la foto. Asi el
+        # cambio se ve de golpe, sin ver como se repinta fila a fila.
+        foto = _foto_encima(self.root, m)
 
         def hacer():
             accion()
-            self._popup(pos=pos, previo=m)
+            if not m.winfo_exists():
+                return
+            _congelar(m, True)
+            try:
+                for h in m.winfo_children():
+                    h.destroy()
+                self._menu_llenar(m)
+                m.update_idletasks()
+            finally:
+                _congelar(m, False)
+            round_corners(m)
+            m.update()
+            if foto is not None:
+                foto.lift()
+                self.root.after(80, foto.destroy)
         self.root.after(1, hacer)
 
     def _mcabecera(self, parent, cfg):
@@ -311,7 +368,7 @@ class Menu:
         activa = next((c for c in cfg.get('cuentas') or []
                        if c.get('id') == cfg.get('cuenta_activa')), None)
         hd = tk.Frame(parent, bg=T.MENU_BG)
-        hd.pack(fill='x', padx=px(14), pady=(px(12), px(6)))
+        hd.pack(fill='x', padx=mpx(14), pady=(mpx(12), mpx(6)))
         if activa is not None:
             nombre = activa.get('nombre') or 'Tu cuenta'
             correo = activa.get('email') or ''
@@ -319,42 +376,57 @@ class Menu:
             nombre, correo = 'Sin cuenta', 'Inicia sesión para empezar'
         av = tk.Label(hd, bg=T.MENU_BG, bd=0, compound='center',
                       text=(nombre[:1].upper() if activa else '?'),
-                      fg=T.TEXT_ON_FILL, font=(T.FUENTE, -px(14), 'bold'))
+                      fg=T.TEXT_ON_FILL, font=(T.FUENTE, -mpx(14), 'bold'))
         im = self._avatar_img(nombre[:1], T.MENU_BG)
         if im is not None:
             av.configure(image=im)
             av._img = im
         av.pack(side='left')
         txt = tk.Frame(hd, bg=T.MENU_BG)
-        txt.pack(side='left', fill='x', expand=True, padx=(px(10), 0))
+        txt.pack(side='left', fill='x', expand=True, padx=(mpx(10), 0))
         fila = tk.Frame(txt, bg=T.MENU_BG)
         fila.pack(fill='x')
         tk.Label(fila, text=nombre, bg=T.MENU_BG, fg=T.MENU_FG, anchor='w',
-                 font=(T.FUENTE, -px(13), 'bold')).pack(side='left')
+                 font=(T.FUENTE, -mpx(13), 'bold')).pack(side='left')
         tk.Label(fila, text=(f'PRUEBA {VERSION}' if PRUEBA else f'v{VERSION}'),
                  bg=T.MENU_BG, fg=(T.MENU_ACCENT if PRUEBA else T.MENU_MUTED),
-                 font=(T.FUENTE, -px(9), 'bold' if PRUEBA else 'normal')).pack(
+                 font=(T.FUENTE, -mpx(9), 'bold' if PRUEBA else 'normal')).pack(
                      side='right')
         tk.Label(txt, text=correo, bg=T.MENU_BG, fg=T.MENU_MUTED, anchor='w',
-                 font=(T.FUENTE, -px(11))).pack(fill='x')
+                 font=(T.FUENTE, -mpx(11))).pack(fill='x')
 
-    def _popup(self, e=None, pos=None, previo=None):
+    def _popup(self, e=None):
         self._panel_ocultar()
-        if previo is None:
-            self._close_menu()
-        cfg = load_cfg()
+        self._close_menu()
         m = tk.Toplevel(self.root)
         self._menu_win = m
         m.overrideredirect(True)
-        if previo is not None:
-            m.attributes('-alpha', 0.0)       # se dibuja oculto (ver _y_reabrir)
         m.attributes('-topmost', True)
+        self._menu_llenar(m)
+        self._place(m, getattr(e, 'x_root', self.root.winfo_x()),
+                    getattr(e, 'y_root', self.root.winfo_y()))
+        round_corners(m)
+
+        m.bind('<Escape>', self._close_menu)
+        try:
+            m.focus_force()
+        except Exception:
+            pass
+
+        def _arm(_w=m):
+            if _w is getattr(self, '_menu_win', None) and _w.winfo_exists():
+                _w.bind('<FocusOut>', self._close_menu)
+        self.root.after(250, _arm)
+        return 'break'
+
+    def _menu_llenar(self, m):
+        """Contenido del menu. Tamano fijo: no crece con el del widget."""
+        cfg = load_cfg()
         m.configure(bg=T.MENU_BD)
-        body = tk.Frame(m, bg=T.MENU_BG, width=px(290))
+        body = tk.Frame(m, bg=T.MENU_BG, width=mpx(290))
         body.pack(fill='both', expand=True, padx=1, pady=1)
 
         self._mcabecera(body, cfg)
-
         nueva = getattr(self, 'nueva_version', None)
         if nueva:
             self._mrow(body, f'Instalar versión {nueva[0]}',
@@ -402,39 +474,13 @@ class Menu:
         self._mrow(body, 'Diagnóstico', self._info_dialog, icono='diagnostico',
                    muted=True)
         self._mrow(body, 'Cerrar', self.close, icono='cerrar', muted=True)
-        tk.Frame(body, bg=T.MENU_BG, height=px(6)).pack(fill='x')
+        tk.Frame(body, bg=T.MENU_BG, height=mpx(6)).pack(fill='x')
 
-        # ancho fijo: que no baile segun el nombre de la cuenta
+        # ancho fijo: que no baile segun el nombre de la cuenta. Solo se
+        # cambia el tamano; la posicion se queda donde estaba.
         m.update_idletasks()
-        ancho = max(px(290), body.winfo_reqwidth() + 2)
+        ancho = max(mpx(290), body.winfo_reqwidth() + 2)
         m.geometry(f'{ancho}x{body.winfo_reqheight() + 2}')
-
-        if pos:
-            # reabierto tras un ajuste: en el mismo sitio, sin saltos
-            m.geometry(f'+{pos[0]}+{pos[1]}')
-        else:
-            self._place(m, getattr(e, 'x_root', self.root.winfo_x()),
-                        getattr(e, 'y_root', self.root.winfo_y()))
-        round_corners(m)
-        if previo is not None:
-            m.update_idletasks()
-            m.attributes('-alpha', 1.0)
-            try:
-                previo.destroy()
-            except Exception:
-                pass
-
-        m.bind('<Escape>', self._close_menu)
-        try:
-            m.focus_force()
-        except Exception:
-            pass
-
-        def _arm(_w=m):
-            if _w is getattr(self, '_menu_win', None) and _w.winfo_exists():
-                _w.bind('<FocusOut>', self._close_menu)
-        self.root.after(250, _arm)
-        return 'break'
 
     # ---- piezas comunes de las ventanas --------------------------------
     def _ventana(self, titulo, ancho):
@@ -451,11 +497,11 @@ class Menu:
         cuerpo.pack(fill='both', expand=True, padx=1, pady=1)
 
         cab = tk.Frame(cuerpo, bg=T.MENU_BG)
-        cab.pack(fill='x', padx=(px(14), px(10)), pady=(px(10), px(2)))
+        cab.pack(fill='x', padx=(mpx(14), mpx(10)), pady=(mpx(10), mpx(2)))
         tk.Label(cab, text=titulo, bg=T.MENU_BG, fg=T.MENU_FG,
-                 font=(T.FUENTE, -px(13), 'bold')).pack(side='left')
+                 font=(T.FUENTE, -mpx(13), 'bold')).pack(side='left')
         cerrar = tk.Label(cab, text='\u2715', bg=T.MENU_BG, fg=T.MENU_MUTED,
-                          font=(T.FUENTE, -px(12)), cursor='hand2')
+                          font=(T.FUENTE, -mpx(12)), cursor='hand2')
         cerrar.pack(side='right')
         cerrar.bind('<Button-1>', lambda e: w.destroy())
         cerrar.bind('<Enter>', lambda e: cerrar.configure(fg=T.CLOSE_HOV))
@@ -480,8 +526,8 @@ class Menu:
         b = tk.Label(parent, text=texto, cursor='hand2',
                      bg=(T.MENU_ACCENT if primario else T.MENU_HOVER),
                      fg=(T.TEXT_ON_FILL if primario else T.MENU_FG),
-                     font=(T.FUENTE, -px(12), 'bold' if primario else 'normal'),
-                     padx=px(16), pady=px(7))
+                     font=(T.FUENTE, -mpx(12), 'bold' if primario else 'normal'),
+                     padx=mpx(16), pady=mpx(7))
         b.bind('<Button-1>', lambda e: cmd())
         if not primario:
             b.bind('<Enter>', lambda e: b.configure(bg=T.MENU_SEP))

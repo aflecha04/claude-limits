@@ -125,6 +125,17 @@ def apply_scale(ui):
     PAD = int(round(BASE_PAD * UI))
 
 
+# Escala solo del sistema (DPI), sin el tamano elegido por el usuario: la
+# usan el menu y las ventanas, que tienen tamano fijo. El tamano elegido
+# solo agranda el widget; si agrandara el menu, este se salia de la pantalla.
+DPI_UI = 1.0
+
+
+def mpx(v):
+    """Medida de diseno -> pixeles reales, para menu y ventanas."""
+    return int(round(v * DPI_UI))
+
+
 def px(v):
     """Medida de diseno -> pixeles reales."""
     return int(round(v * UI))

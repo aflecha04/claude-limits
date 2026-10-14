@@ -7,7 +7,7 @@ import tkinter as tk
 
 from . import tema as T
 from . import config as C
-from .tema import px, HAVE_PIL
+from .tema import mpx, HAVE_PIL
 from .canal import APP_NAME, VERSION
 from .config import (load_cfg, save_cfg, cfg_dirs, CFG_NAME, _read_json,
                      clean_key, key_looks_real)
@@ -90,23 +90,23 @@ class Dialogos:
         previa = getattr(self, '_txtwin', None)
         if previa is not None and previa.winfo_exists():
             previa.destroy()
-        w = self._ventana(title, px(560))
+        w = self._ventana(title, mpx(560))
         self._txtwin = w
         cuerpo = w._cuerpo
         caja = tk.Frame(cuerpo, bg=T.MENU_HOVER)
-        caja.pack(fill='both', expand=True, padx=px(14), pady=(px(8), 0))
+        caja.pack(fill='both', expand=True, padx=mpx(14), pady=(mpx(8), 0))
         t = tk.Text(caja, width=78, height=17, bg=T.MENU_HOVER, fg=T.MENU_FG,
-                    font=('Consolas', -px(11)), relief='flat', wrap='none',
-                    bd=0, highlightthickness=0, padx=px(10), pady=px(8),
+                    font=('Consolas', -mpx(11)), relief='flat', wrap='none',
+                    bd=0, highlightthickness=0, padx=mpx(10), pady=mpx(8),
                     insertbackground=T.MENU_FG)
         t.pack(fill='both', expand=True)
         t.insert('1.0', body)
         t.config(state='disabled')
         bf = tk.Frame(cuerpo, bg=T.MENU_BG)
-        bf.pack(pady=px(12))
+        bf.pack(pady=mpx(12))
         self._boton(bf, 'Cerrar', w.destroy, primario=True).pack()
-        self._place(w, self.root.winfo_x() - px(260),
-                    self.root.winfo_y() - px(320))
+        self._place(w, self.root.winfo_x() - mpx(260),
+                    self.root.winfo_y() - mpx(320))
         round_corners(w)
         w.focus_force()
 
@@ -114,7 +114,7 @@ class Dialogos:
         if getattr(self, '_dlg', None) is not None and self._dlg.winfo_exists():
             self._dlg.lift(); self._dlg.focus_force(); return
         cfg = load_cfg()
-        ancho = px(430)
+        ancho = mpx(430)
         w = self._ventana('Conectar con Claude', ancho)
         self._dlg = w
         cuerpo = w._cuerpo
@@ -122,26 +122,26 @@ class Dialogos:
                    lambda: (setattr(self, '_dlg', None), w.destroy()))
 
         tk.Label(cuerpo, text='Pega aquí tu sessionKey de claude.ai',
-                 bg=T.MENU_BG, fg=T.MENU_FG, font=(T.FUENTE, -px(12)),
-                 anchor='w').pack(fill='x', padx=px(14), pady=(px(6), 0))
+                 bg=T.MENU_BG, fg=T.MENU_FG, font=(T.FUENTE, -mpx(12)),
+                 anchor='w').pack(fill='x', padx=mpx(14), pady=(mpx(6), 0))
         tk.Label(cuerpo,
                  text='En claude.ai: icono a la izquierda de la dirección  ›  '
                       'Cookies  ›  sessionKey',
-                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -px(10)),
-                 anchor='w', justify='left').pack(fill='x', padx=px(14),
-                                                  pady=(px(2), px(10)))
+                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -mpx(10)),
+                 anchor='w', justify='left').pack(fill='x', padx=mpx(14),
+                                                  pady=(mpx(2), mpx(10)))
 
         marco = tk.Frame(cuerpo, bg=T.MENU_HOVER)
-        marco.pack(fill='x', padx=px(14))
-        ent = tk.Entry(marco, show='\u2022', font=('Consolas', -px(12)),
+        marco.pack(fill='x', padx=mpx(14))
+        ent = tk.Entry(marco, show='\u2022', font=('Consolas', -mpx(12)),
                        bg=T.MENU_HOVER, fg=T.MENU_FG, relief='flat', bd=0,
                        highlightthickness=0, insertbackground=T.MENU_ACCENT)
-        ent.pack(fill='x', padx=px(10), pady=px(9))
+        ent.pack(fill='x', padx=mpx(10), pady=mpx(9))
 
         msg = tk.Label(cuerpo, text='', bg=T.MENU_BG, fg=T.CLOSE_HOV,
-                       font=(T.FUENTE, -px(10)), wraplength=ancho - px(30),
+                       font=(T.FUENTE, -mpx(10)), wraplength=ancho - mpx(30),
                        justify='left', anchor='w')
-        msg.pack(fill='x', padx=px(14), pady=(px(6), 0))
+        msg.pack(fill='x', padx=mpx(14), pady=(mpx(6), 0))
 
         def conectar():
             val = clean_key(ent.get())
@@ -179,14 +179,14 @@ class Dialogos:
             threading.Thread(target=comprobar, daemon=True).start()
 
         bf = tk.Frame(cuerpo, bg=T.MENU_BG)
-        bf.pack(pady=(px(14), px(14)))
+        bf.pack(pady=(mpx(14), mpx(14)))
         self._boton(bf, 'Cancelar',
                     lambda: (setattr(self, '_dlg', None),
-                             w.destroy())).pack(side='left', padx=px(5))
+                             w.destroy())).pack(side='left', padx=mpx(5))
         self._boton(bf, 'Conectar', conectar,
-                    primario=True).pack(side='left', padx=px(5))
+                    primario=True).pack(side='left', padx=mpx(5))
         w.bind('<Return>', lambda e: conectar())
-        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(190))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(190))
         round_corners(w)
         w.focus_force()
         ent.focus_set()
@@ -201,15 +201,15 @@ class Dialogos:
         previa = getattr(self, '_orgdlg', None)
         if previa is not None and previa.winfo_exists():
             previa.lift(); previa.focus_force(); return
-        w = self._ventana('Organización', px(320))
+        w = self._ventana('Organización', mpx(320))
         self._orgdlg = w
         cuerpo = w._cuerpo
         tk.Label(cuerpo, text='¿De qué organización quieres ver el consumo?',
-                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -px(11)),
-                 anchor='w').pack(fill='x', padx=px(14), pady=(px(4), px(6)))
+                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -mpx(11)),
+                 anchor='w').pack(fill='x', padx=mpx(14), pady=(mpx(4), mpx(6)))
         lista = tk.Frame(cuerpo, bg=T.MENU_BG)
         lista.pack(fill='x')
-        tk.Frame(cuerpo, bg=T.MENU_BG, height=px(10)).pack(fill='x')
+        tk.Frame(cuerpo, bg=T.MENU_BG, height=mpx(10)).pack(fill='x')
 
         def elegir(uuid):
             c = load_cfg()
@@ -246,7 +246,7 @@ class Dialogos:
             self.root.after(0, mostrar)
         threading.Thread(target=recargar, daemon=True).start()
 
-        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(160))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(160))
         round_corners(w)
         w.focus_force()
 
@@ -268,13 +268,13 @@ class Dialogos:
         cfg = load_cfg()
         c = next((x for x in cfg.get('cuentas') or [] if x.get('id') == cid), {})
         nombre = c.get('email') or c.get('nombre') or 'esta cuenta'
-        w = self._ventana('Quitar cuenta', px(320))
+        w = self._ventana('Quitar cuenta', mpx(320))
         cuerpo = w._cuerpo
         tk.Label(cuerpo, text=f'¿Quitar {nombre} del widget?\n'
                               'Podrás volver a añadirla cuando quieras.',
-                 bg=T.MENU_BG, fg=T.MENU_FG, font=(T.FUENTE, -px(12)),
-                 justify='left', anchor='w', wraplength=px(290)).pack(
-                     fill='x', padx=px(14), pady=(px(6), 0))
+                 bg=T.MENU_BG, fg=T.MENU_FG, font=(T.FUENTE, -mpx(12)),
+                 justify='left', anchor='w', wraplength=mpx(290)).pack(
+                     fill='x', padx=mpx(14), pady=(mpx(6), 0))
 
         def si():
             w.destroy()
@@ -284,10 +284,10 @@ class Dialogos:
                 self._cuenta_cambiada()
 
         bf = tk.Frame(cuerpo, bg=T.MENU_BG)
-        bf.pack(pady=px(14))
-        self._boton(bf, 'Cancelar', w.destroy).pack(side='left', padx=px(5))
-        self._boton(bf, 'Quitar', si, primario=True).pack(side='left', padx=px(5))
-        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(150))
+        bf.pack(pady=mpx(14))
+        self._boton(bf, 'Cancelar', w.destroy).pack(side='left', padx=mpx(5))
+        self._boton(bf, 'Quitar', si, primario=True).pack(side='left', padx=mpx(5))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(150))
         round_corners(w)
         w.focus_force()
 
@@ -299,24 +299,24 @@ class Dialogos:
         previa = getattr(self, '_dlg', None)
         if previa is not None and previa.winfo_exists():
             previa.lift(); previa.focus_force(); return
-        w = self._ventana('Iniciar sesión en Claude', px(360))
+        w = self._ventana('Iniciar sesión en Claude', mpx(360))
         self._dlg = w
         cuerpo = w._cuerpo
         texto = tk.Label(cuerpo, bg=T.MENU_BG, fg=T.MENU_FG, justify='left',
-                         anchor='w', wraplength=px(330),
-                         font=(T.FUENTE, -px(12)),
+                         anchor='w', wraplength=mpx(330),
+                         font=(T.FUENTE, -mpx(12)),
                          text='Se abrirá una ventana para entrar en Claude con '
                               'la cuenta que quieras. Cuando entres, se cerrará '
                               'sola y el widget quedará conectado.')
-        texto.pack(fill='x', padx=px(14), pady=(px(6), 0))
+        texto.pack(fill='x', padx=mpx(14), pady=(mpx(6), 0))
         estado = {'cancelado': False, 'abierto': False}
 
         bf = tk.Frame(cuerpo, bg=T.MENU_BG)
-        bf.pack(pady=(px(14), px(4)))
+        bf.pack(pady=(mpx(14), mpx(4)))
         manual = tk.Label(cuerpo, text='o pega la sessionKey a mano',
                           bg=T.MENU_BG, fg=T.MENU_MUTED, cursor='hand2',
-                          font=(T.FUENTE, -px(10), 'underline'))
-        manual.pack(pady=(0, px(12)))
+                          font=(T.FUENTE, -mpx(10), 'underline'))
+        manual.pack(pady=(0, mpx(12)))
 
         def cerrar():
             estado['cancelado'] = True
@@ -339,7 +339,7 @@ class Dialogos:
                 return
             estado['abierto'] = False
             texto.config(text=resultado, fg=T.CLOSE_HOV)
-            abrir_b.pack(side='left', padx=px(5))
+            abrir_b.pack(side='left', padx=mpx(5))
 
         def trabajar():
             try:
@@ -365,11 +365,11 @@ class Dialogos:
                               'del navegador…', fg=T.MENU_FG)
             threading.Thread(target=trabajar, daemon=True).start()
 
-        self._boton(bf, 'Cancelar', cerrar).pack(side='left', padx=px(5))
+        self._boton(bf, 'Cancelar', cerrar).pack(side='left', padx=mpx(5))
         abrir_b = self._boton(bf, 'Abrir ventana', abrir, primario=True)
-        abrir_b.pack(side='left', padx=px(5))
+        abrir_b.pack(side='left', padx=mpx(5))
         w.protocol('WM_DELETE_WINDOW', cerrar)
         w.bind('<Return>', lambda e: abrir())
-        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(170))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(170))
         round_corners(w)
         w.focus_force()

@@ -5,7 +5,7 @@ import threading
 import tkinter as tk
 
 from . import tema as T
-from .tema import apply_theme, apply_accent, apply_scale, px
+from .tema import apply_theme, apply_accent, apply_scale, px, mpx
 from .config import load_cfg, save_cfg
 from .sistema import round_corners
 
@@ -56,30 +56,30 @@ class Ajustes:
         dlg = getattr(self, '_szdlg', None)
         if dlg is not None and dlg.winfo_exists():
             dlg.lift(); dlg.focus_force(); return
-        ancho = px(260)
+        ancho = mpx(260)
         w = self._ventana('Tamaño', ancho)
         self._szdlg = w
         cuerpo = w._cuerpo
 
         valor = tk.Label(cuerpo, text=f'{int(round(self.user_scale * 100))} %',
                          bg=T.MENU_BG, fg=T.MENU_ACCENT,
-                         font=(T.FUENTE, -px(30), 'bold'))
-        valor.pack(pady=(px(6), px(2)))
+                         font=(T.FUENTE, -mpx(30), 'bold'))
+        valor.pack(pady=(mpx(6), mpx(2)))
 
         # deslizador dibujado a mano: el de Tk trae su propio aspecto y
         # rompia la coherencia con el resto
-        cw, ch = ancho - px(36), px(30)
+        cw, ch = ancho - mpx(36), mpx(30)
         lienzo = tk.Canvas(cuerpo, width=cw, height=ch, bg=T.MENU_BG,
                            highlightthickness=0, bd=0, cursor='hand2')
-        lienzo.pack(padx=px(18), pady=(0, px(2)))
+        lienzo.pack(padx=mpx(18), pady=(0, mpx(2)))
         MIN, MAX = 70, 200
-        r = px(7)
+        r = mpx(7)
 
         def pinta():
             v = int(round(self.user_scale * 100))
             lienzo.delete('all')
             cy = ch // 2
-            grueso = px(6)
+            grueso = mpx(6)
             # El canal va en el color del carril del widget, no en el de los
             # separadores del menu: aquel apenas se distingue del fondo del
             # dialogo y el deslizador parecia cortado a media altura.
@@ -91,8 +91,8 @@ class Ajustes:
                 lienzo.create_line(r, cy, x, cy, fill=T.MENU_ACCENT,
                                    width=grueso, capstyle='round')
             # tirador: aro del color del dialogo para separarlo del canal
-            lienzo.create_oval(x - r - px(2), cy - r - px(2),
-                               x + r + px(2), cy + r + px(2),
+            lienzo.create_oval(x - r - mpx(2), cy - r - mpx(2),
+                               x + r + mpx(2), cy + r + mpx(2),
                                fill=T.MENU_BG, outline='')
             lienzo.create_oval(x - r, cy - r, x + r, cy + r,
                                fill=T.MENU_ACCENT, outline='')
@@ -110,11 +110,11 @@ class Ajustes:
         pinta()
 
         ext = tk.Frame(cuerpo, bg=T.MENU_BG)
-        ext.pack(fill='x', padx=px(18))
+        ext.pack(fill='x', padx=mpx(18))
         tk.Label(ext, text='70 %', bg=T.MENU_BG, fg=T.MENU_MUTED,
-                 font=(T.FUENTE, -px(10))).pack(side='left')
+                 font=(T.FUENTE, -mpx(10))).pack(side='left')
         tk.Label(ext, text='200 %', bg=T.MENU_BG, fg=T.MENU_MUTED,
-                 font=(T.FUENTE, -px(10))).pack(side='right')
+                 font=(T.FUENTE, -mpx(10))).pack(side='right')
 
         def guardar():
             self._guardar_apariencia()
@@ -129,11 +129,11 @@ class Ajustes:
             pinta()
 
         bf = tk.Frame(cuerpo, bg=T.MENU_BG)
-        bf.pack(pady=(px(14), px(14)))
-        self._boton(bf, 'Restablecer', restablecer).pack(side='left', padx=px(5))
-        self._boton(bf, 'Hecho', hecho, primario=True).pack(side='left', padx=px(5))
+        bf.pack(pady=(mpx(14), mpx(14)))
+        self._boton(bf, 'Restablecer', restablecer).pack(side='left', padx=mpx(5))
+        self._boton(bf, 'Hecho', hecho, primario=True).pack(side='left', padx=mpx(5))
         w.protocol('WM_DELETE_WINDOW', hecho)
-        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(200))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(200))
         round_corners(w)
         w.focus_force()
 
