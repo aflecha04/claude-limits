@@ -1,0 +1,236 @@
+# -*- coding: utf-8 -*-
+"""Ventanas: sessionKey, cuenta de Claude, diagnostico y arranque."""
+
+import os
+import threading
+import tkinter as tk
+
+from . import tema as T
+from . import config as C
+from .tema import px, HAVE_PIL
+from .canal import APP_NAME, VERSION
+from .config import (load_cfg, save_cfg, cfg_dirs, CFG_NAME, _read_json,
+                     clean_key, key_looks_real)
+from .api import listar_orgs, nombre_org
+from .sistema import (_mi_ruta, autostart_activar, autostart_estado,
+                      autostart_vetado, round_corners)
+
+
+class Dialogos:
+    """Ventanas de sessionKey, diagnostico y arranque."""
+
+    # ---- dialogos ------------------------------------------------------
+    def _toggle_autostart(self, e=None):
+        activo = (autostart_estado() or '').lower() == _mi_ruta().lower()
+        ok = autostart_activar(not activo)
+        cfg = load_cfg()
+        cfg['autostart'] = (not activo)
+        save_cfg(cfg, durable=False)
+        if not ok:
+            self._text_window(
+                f'{APP_NAME}  -  arranque',
+                'No se ha podido escribir en el registro de Windows.\n\n'
+                'Suele ser una restriccion del equipo. Alternativa manual:\n'
+                '  1. Windows + R\n'
+                '  2. escribe:  shell:startup\n'
+                '  3. arrastra el .exe con el BOTON DERECHO y elige\n'
+                '     "Crear iconos de acceso directo aqui"')
+
+    def _info_dialog(self, e=None):
+        lines = [f'{APP_NAME}  v{VERSION}   ·   tema: {T.THEME}   ·   '
+                 f'DPI: {getattr(self, "dpi", 96):.0f}  (escala x{T.UI:.2f})   ·   '
+                 f'ventana: {T.W}x{T.H}px',
+                 f'Pillow: {"sí" if HAVE_PIL else "NO (render básico)"}',
+                 '']
+        cfg = load_cfg()
+        lines.append('sessionKey: ' + {
+            'boveda': 'en la caja fuerte de Windows (Administrador de '
+                      'credenciales)',
+            'archivo': 'en config.json (la caja fuerte no estaba disponible)',
+        }.get(C.CLAVE_EN, 'NO configurada'))
+        lines.append(f'Cuenta de Claude: {nombre_org(cfg) or "(sin elegir)"}')
+        lines += ['', 'Rutas de configuración (por orden):', '']
+        for d in cfg_dirs():
+            p = os.path.join(d, CFG_NAME)
+            if os.path.exists(p):
+                try:
+                    has = bool(_read_json(p).get('session_key'))
+                    mark = 'OK  (con clave en texto)' if has else 'OK'
+                except Exception:
+                    mark = 'ILEGIBLE / corrupto'
+            else:
+                mark = '(no existe)'
+            lines.append(f'  {mark}\n     {p}')
+        lines.append('')
+        lines.append(f'Leído de: {C.LOADED_FROM or "(ninguno)"}')
+        lines.append('')
+        lines.append(f'Ejecutable: {_mi_ruta()}')
+        reg = autostart_estado()
+        if not reg:
+            lines.append('Arranque con Windows: NO configurado')
+        elif reg.lower() == _mi_ruta().lower():
+            lines.append('Arranque con Windows: SÍ (registro HKCU\\...\\Run)')
+        else:
+            lines.append('Arranque con Windows: APUNTA A OTRO ARCHIVO ->')
+            lines.append(f'   {reg}')
+        if autostart_vetado():
+            lines.append('   AVISO: Windows la tiene DESACTIVADA en')
+            lines.append('   Administrador de tareas > Inicio de aplicaciones.')
+        if C.SAVE_REPORT:
+            lines.append('')
+            lines.append('Último guardado:')
+            for p, ok, why in C.SAVE_REPORT:
+                lines.append(f'  {"OK " if ok else "FALLO"} {p}' +
+                             (f'  -> {why}' if not ok else ''))
+        self._text_window(f'{APP_NAME}  -  diagnóstico', '\n'.join(lines))
+
+    def _text_window(self, title, body):
+        previa = getattr(self, '_txtwin', None)
+        if previa is not None and previa.winfo_exists():
+            previa.destroy()
+        w = self._ventana(title, px(560))
+        self._txtwin = w
+        cuerpo = w._cuerpo
+        caja = tk.Frame(cuerpo, bg=T.MENU_HOVER)
+        caja.pack(fill='both', expand=True, padx=px(14), pady=(px(8), 0))
+        t = tk.Text(caja, width=78, height=17, bg=T.MENU_HOVER, fg=T.MENU_FG,
+                    font=('Consolas', -px(11)), relief='flat', wrap='none',
+                    bd=0, highlightthickness=0, padx=px(10), pady=px(8),
+                    insertbackground=T.MENU_FG)
+        t.pack(fill='both', expand=True)
+        t.insert('1.0', body)
+        t.config(state='disabled')
+        bf = tk.Frame(cuerpo, bg=T.MENU_BG)
+        bf.pack(pady=px(12))
+        self._boton(bf, 'Cerrar', w.destroy, primario=True).pack()
+        self._place(w, self.root.winfo_x() - px(260),
+                    self.root.winfo_y() - px(320))
+        round_corners(w)
+        w.focus_force()
+
+    def _key_dialog(self, e=None):
+        if getattr(self, '_dlg', None) is not None and self._dlg.winfo_exists():
+            self._dlg.lift(); self._dlg.focus_force(); return
+        cfg = load_cfg()
+        ancho = px(430)
+        w = self._ventana('Conectar con Claude', ancho)
+        self._dlg = w
+        cuerpo = w._cuerpo
+        w.protocol('WM_DELETE_WINDOW',
+                   lambda: (setattr(self, '_dlg', None), w.destroy()))
+
+        tk.Label(cuerpo, text='Pega aquí tu sessionKey de claude.ai',
+                 bg=T.MENU_BG, fg=T.MENU_FG, font=('Segoe UI', -px(12)),
+                 anchor='w').pack(fill='x', padx=px(14), pady=(px(6), 0))
+        tk.Label(cuerpo,
+                 text='En claude.ai: icono a la izquierda de la dirección  ›  '
+                      'Cookies  ›  sessionKey',
+                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=('Segoe UI', -px(10)),
+                 anchor='w', justify='left').pack(fill='x', padx=px(14),
+                                                  pady=(px(2), px(10)))
+
+        marco = tk.Frame(cuerpo, bg=T.MENU_HOVER)
+        marco.pack(fill='x', padx=px(14))
+        ent = tk.Entry(marco, show='\u2022', font=('Consolas', -px(12)),
+                       bg=T.MENU_HOVER, fg=T.MENU_FG, relief='flat', bd=0,
+                       highlightthickness=0, insertbackground=T.MENU_ACCENT)
+        ent.pack(fill='x', padx=px(10), pady=px(9))
+        ent.insert(0, cfg.get('session_key', ''))
+
+        msg = tk.Label(cuerpo, text='', bg=T.MENU_BG, fg=T.CLOSE_HOV,
+                       font=('Segoe UI', -px(10)), wraplength=ancho - px(30),
+                       justify='left', anchor='w')
+        msg.pack(fill='x', padx=px(14), pady=(px(6), 0))
+
+        def conectar():
+            val = clean_key(ent.get())
+            if not key_looks_real(val):
+                msg.config(text='Esa clave no parece válida: tiene que empezar '
+                                'por "sk-ant-" y ser larga. Cópiala entera.')
+                return
+            c = load_cfg()
+            c['session_key'] = val
+            c['theme'] = T.THEME
+            c.pop('org_id', None)
+            c.pop('orgs', None)
+            if not save_cfg(c):
+                msg.config(text='No se ha podido guardar en ninguna carpeta.\n'
+                                + '\n'.join(f'{p}: {why}'
+                                            for p, _o, why in C.SAVE_REPORT))
+                return
+            self._dlg = None
+            w.destroy()
+            self.status_msg = None
+            self.refresh()
+
+        bf = tk.Frame(cuerpo, bg=T.MENU_BG)
+        bf.pack(pady=(px(14), px(14)))
+        self._boton(bf, 'Cancelar',
+                    lambda: (setattr(self, '_dlg', None),
+                             w.destroy())).pack(side='left', padx=px(5))
+        self._boton(bf, 'Conectar', conectar,
+                    primario=True).pack(side='left', padx=px(5))
+        w.bind('<Return>', lambda e: conectar())
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(190))
+        round_corners(w)
+        w.focus_force()
+        ent.focus_set()
+
+    # ---- cuenta de Claude (organizacion) -------------------------------
+    def _org_dialog(self, e=None):
+        """Elegir de que organizacion se muestra el consumo.
+
+        Se abre con la lista guardada y la refresca en segundo plano, por si
+        la cuenta ha ganado o perdido alguna desde la ultima vez.
+        """
+        previa = getattr(self, '_orgdlg', None)
+        if previa is not None and previa.winfo_exists():
+            previa.lift(); previa.focus_force(); return
+        w = self._ventana('Cuenta de Claude', px(320))
+        self._orgdlg = w
+        cuerpo = w._cuerpo
+        tk.Label(cuerpo, text='¿De qué cuenta quieres ver el consumo?',
+                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=('Segoe UI', -px(11)),
+                 anchor='w').pack(fill='x', padx=px(14), pady=(px(4), px(6)))
+        lista = tk.Frame(cuerpo, bg=T.MENU_BG)
+        lista.pack(fill='x')
+        tk.Frame(cuerpo, bg=T.MENU_BG, height=px(10)).pack(fill='x')
+
+        def elegir(uuid):
+            c = load_cfg()
+            c['org_id'] = uuid
+            save_cfg(c)
+            self._orgdlg = None
+            w.destroy()
+            self.refresh()
+
+        def pintar(orgs, actual):
+            for h in lista.winfo_children():
+                h.destroy()
+            for uuid, nombre in orgs:
+                self._mrow(lista, nombre, lambda u=uuid: elegir(u),
+                           punto=(uuid == actual))
+
+        cfg = load_cfg()
+        pintar(cfg.get('orgs') or [], cfg.get('org_id'))
+
+        def recargar():
+            try:
+                c = load_cfg()
+                orgs = [[u, n] for u, n, _chat in listar_orgs(c)]
+            except Exception:
+                return
+            if not orgs:
+                return
+            c['orgs'] = orgs
+            save_cfg(c, durable=False)
+
+            def mostrar():
+                if w.winfo_exists():
+                    pintar(orgs, c.get('org_id'))
+            self.root.after(0, mostrar)
+        threading.Thread(target=recargar, daemon=True).start()
+
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(160))
+        round_corners(w)
+        w.focus_force()

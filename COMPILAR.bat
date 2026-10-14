@@ -25,6 +25,7 @@ echo  [2/5] Preparando carpeta temporal fuera de OneDrive...
 rmdir /S /Q "%WORK%" >nul 2>&1
 mkdir "%WORK%" 2>nul
 copy /Y "%~dp0claude_glass.pyw" "%WORK%\claude_glass.pyw" >nul
+xcopy /E /I /Y /Q "%~dp0claudeglass" "%WORK%\claudeglass" >nul
 
 echo  [3/5] Dependencias y compilacion (1-2 minutos)...
 "%PY%" -m pip install --upgrade pillow pyinstaller > "%LOG%" 2>&1
