@@ -26,30 +26,6 @@ def _congelar(win, congelar):
         pass
 
 
-def _foto_encima(root, win):
-    """Ventanita sin marco con una captura de 'win', justo encima de ella."""
-    if not HAVE_PIL:
-        return None
-    try:
-        from PIL import ImageGrab
-        x, y = win.winfo_rootx(), win.winfo_rooty()
-        w, h = win.winfo_width(), win.winfo_height()
-        img = ImageGrab.grab((x, y, x + w, y + h), all_screens=True)
-        f = tk.Toplevel(root)
-        f.overrideredirect(True)
-        f.attributes('-topmost', True)
-        f.geometry(f'{w}x{h}+{x}+{y}')
-        foto = ImageTk.PhotoImage(img)
-        lb = tk.Label(f, image=foto, bd=0, highlightthickness=0)
-        lb._foto = foto
-        lb.pack()
-        round_corners(f)
-        f.update()
-        return f
-    except Exception:
-        return None
-
-
 class Menu:
     """Menu de clic derecho y piezas comunes de las ventanas."""
 
@@ -339,28 +315,29 @@ class Menu:
             self.root.after(1, accion)
             return
 
-        # Una "foto" del menu tal como esta lo tapa mientras se rehace por
-        # debajo; cuando el nuevo ya esta pintado, se quita la foto. Asi el
-        # cambio se ve de golpe, sin ver como se repinta fila a fila.
-        foto = _foto_encima(self.root, m)
-
         def hacer():
-            accion()
-            if not m.winfo_exists():
-                return
-            _congelar(m, True)
+            # mientras se rehace, perder el foco no cierra el menu (al borrar
+            # las filas viejas Windows mueve el foco y antes lo cerraba)
+            self._menu_ocupado = True
             try:
-                for h in m.winfo_children():
-                    h.destroy()
-                self._menu_llenar(m)
-                m.update_idletasks()
+                accion()
+                if not m.winfo_exists():
+                    return
+                _congelar(m, True)
+                try:
+                    for h in m.winfo_children():
+                        h.destroy()
+                    self._menu_llenar(m)
+                    m.update_idletasks()
+                finally:
+                    _congelar(m, False)
+                round_corners(m)
+                try:
+                    m.focus_force()
+                except Exception:
+                    pass
             finally:
-                _congelar(m, False)
-            round_corners(m)
-            m.update()
-            if foto is not None:
-                foto.lift()
-                self.root.after(80, foto.destroy)
+                self.root.after(200, lambda: setattr(self, '_menu_ocupado', False))
         self.root.after(1, hacer)
 
     def _mcabecera(self, parent, cfg):
@@ -415,9 +392,29 @@ class Menu:
 
         def _arm(_w=m):
             if _w is getattr(self, '_menu_win', None) and _w.winfo_exists():
-                _w.bind('<FocusOut>', self._close_menu)
+                _w.bind('<FocusOut>', self._menu_sin_foco)
         self.root.after(250, _arm)
         return 'break'
+
+    def _menu_sin_foco(self, e=None):
+        """Cierra el menu solo si el foco se ha ido de verdad (a otro
+        programa o al resto del escritorio), no por un cambio interno."""
+        m = getattr(self, '_menu_win', None)
+        if m is None or getattr(self, '_menu_ocupado', False):
+            return
+
+        def comprobar():
+            if (getattr(self, '_menu_win', None) is not m or not m.winfo_exists()
+                    or getattr(self, '_menu_ocupado', False)):
+                return
+            try:
+                f = m.focus_get()
+            except Exception:
+                f = None
+            if f is not None and str(f).startswith(str(m)):
+                return                     # el foco sigue dentro del menu
+            self._close_menu()
+        self.root.after(120, comprobar)
 
     def _menu_llenar(self, m):
         """Contenido del menu. Tamano fijo: no crece con el del widget."""
