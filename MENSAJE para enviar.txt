@@ -1,0 +1,12 @@
+ClaudeGlass v3.1
+
+NUEVO
+- Si agotas el limite semanal o el de un modelo (Fable, Opus...) sale un punto rojo en la barra y el panel te dice cuando vuelve.
+- La barra mide exactamente tu %.
+- Tu color se mantiene cuando Claude duerme... y a veces lo cuenta de otra manera.
+
+ARREGLADO
+- Con portatil y monitores ya no desaparece al enchufar: vuelve a su sitio en cada pantalla.
+
+INSTALAR
+Doble clic en INSTALAR.bat. No perdeis la sessionKey. Si Windows avisa: Mas informacion > Ejecutar de todas formas.

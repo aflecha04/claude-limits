@@ -1,0 +1,34 @@
+===========================================================
+  SI TU EQUIPO NO TE DEJA DESCARGAR EL .EXE
+===========================================================
+
+Algunos filtros de seguridad bloquean la descarga de archivos
+.exe. Por eso en esta carpeta hay una copia del programa con
+la extension cambiada:
+
+     ClaudeGlass by Flecha.ex_
+
+Esa copia SI se puede descargar, porque ".ex_" no es un tipo
+de archivo ejecutable y el filtro la deja pasar.
+
+QUE HACER
+---------
+1. Descarga  "ClaudeGlass by Flecha.ex_"  y el INSTALAR.bat
+   a una carpeta cualquiera (por ejemplo, el Escritorio).
+
+2. Renombra el archivo descargado quitandole el guion bajo
+   final, para que quede:
+
+        ClaudeGlass by Flecha.exe
+
+   (Si no ves la extension: en el Explorador, pestana "Vista"
+   > marca "Extensiones de nombre de archivo".)
+
+3. Doble clic en INSTALAR.bat y sigue como siempre.
+
+Si Windows avisa con la pantalla azul de SmartScreen, pulsa
+"Mas informacion" > "Ejecutar de todas formas". Y si no te
+aparece esa opcion: clic derecho sobre el archivo >
+Propiedades > marca "Desbloquear" abajo > Aceptar.
+
+===========================================================

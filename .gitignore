@@ -1,0 +1,15 @@
+# Programas compilados (se generan con COMPILAR.bat)
+*.exe
+*.ex_
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+
+# Configuracion personal: contiene la sessionKey
+config.json
+*.tmp
+glass-pos.json
+error.log
+*.log

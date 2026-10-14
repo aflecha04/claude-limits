@@ -1,0 +1,157 @@
+===========================================================
+  ClaudeGlass v3.1
+  Widget de escritorio: uso de tu sesion de Claude
+===========================================================
+
+QUE ES
+------
+Una barrita flotante, siempre visible, que muestra el porcentaje
+consumido de tu sesion de 5 horas de Claude y cuanto queda para que
+se reinicie. Al llegar al 100 % avisa de que Claude duerme.
+
+
+===========================================================
+ 1. INSTALACION  (tambien si vienes de una version anterior)
+===========================================================
+
+   Haz doble clic en   INSTALAR.bat
+
+El instalador se encarga de todo: cierra la version anterior, instala
+la nueva en %LOCALAPPDATA%\ClaudeGlass, la deja configurada para que
+arranque con Windows y la abre.
+
+TU SESSIONKEY Y TUS AJUSTES SE CONSERVAN.
+
+IMPORTANTE: descomprime TODO el ZIP en una carpeta antes de ejecutar
+el INSTALAR.bat. Si lo lanzas desde dentro del ZIP no encontrara el
+.exe.
+
+Si tu equipo no te deja descargar el .exe, lee el otro archivo:
+"SI NO TE DEJA DESCARGAR - LEEME.txt".
+
+
+===========================================================
+ 2. AVISO DE WINDOWS (SmartScreen)
+===========================================================
+
+La primera vez Windows puede mostrar una pantalla azul:
+
+   "Windows protegio tu PC"
+
+Es normal: el programa no esta firmado digitalmente. No es un virus.
+
+   -> Pulsa "Mas informacion"
+   -> Pulsa "Ejecutar de todas formas"
+
+Si no te aparece esa opcion: clic DERECHO sobre el archivo >
+Propiedades > marca "Desbloquear" abajo del todo > Aceptar.
+
+
+===========================================================
+ 3. CONECTARLO CON TU CUENTA (sessionKey)
+===========================================================
+
+Solo la primera vez. Al abrirlo te pedira una "sessionKey", que es la
+cookie de tu sesion de Claude:
+
+   1. Abre https://claude.ai en Chrome o Edge, con tu sesion iniciada.
+   2. Pulsa F12: se abre el panel de desarrollador.
+   3. Arriba, pestana "Application" (si no la ves, pulsa las flechas >>).
+   4. En la columna de la izquierda: Cookies > https://claude.ai
+   5. Busca la fila  sessionKey  y copia su "Value" COMPLETO
+      (doble clic en la celda y Ctrl+C). Empieza por  sk-ant-
+   6. Pegalo en la ventana del widget y pulsa "Conectar". Cierra F12.
+
+Esa clave es tu credencial personal: no la compartas ni la pegues en
+chats o documentos.
+
+Si cierras sesion de Claude en ese navegador la clave deja de valer y
+el widget mostrara "Clave caducada". Repite el proceso.
+
+
+===========================================================
+ 4. USO
+===========================================================
+
+   - PASA EL RATON POR ENCIMA y se despliega un panel con el LIMITE
+     SEMANAL y el consumo por modelo (Fable, Opus...), cada uno con su
+     porcentaje y su cuenta atras. Se cierra al apartar el raton.
+     Si alguno llega al 100 % su ficha dice "Agotado" y cuando vuelve,
+     y en la barra principal aparece un PUNTO ROJO al final, para que
+     te enteres sin abrir el panel.
+
+   - La barra mide exactamente tu porcentaje, y la cifra cambia de
+     color justo donde acaba el relleno.
+
+   - Al llegar al 100 % de la sesion, Claude se va a dormir... y a
+     veces te lo dice de otra manera. Sale un mensaje por descanso.
+
+   - Arrastra el widget para moverlo. Recuerda un sitio para cada
+     combinacion de pantallas: si trabajas con portatil y monitores,
+     al desenchufar vuelve a su sitio del portatil y al enchufar,
+     al del monitor. Nunca se queda fuera de la pantalla.
+
+   - Clic en la X: cerrar.
+
+   - CLIC DERECHO: el menu completo
+        * Actualizar
+        * Cambiar sessionKey
+        * Tema: Oscuro / Claro
+        * Color: coral, naranja, azul, verde, violeta o blanco
+        * Tamano: 80 / 100 / 125 / 150 %, o el boton  ...  para
+          ajustarlo con una barra deslizante
+        * Iniciar con Windows (se puede activar y desactivar)
+        * Diagnostico (por si algo falla)
+        * Cerrar
+
+Se actualiza solo cada 30 segundos.
+
+
+===========================================================
+ 5. ARRANQUE AUTOMATICO
+===========================================================
+
+El INSTALAR.bat ya lo deja configurado. Para activarlo o quitarlo:
+clic derecho sobre el widget > Iniciar con Windows.
+
+
+===========================================================
+ 6. SI ALGO NO FUNCIONA
+===========================================================
+
+   "Falta sessionKey"   -> clic derecho > Cambiar sessionKey
+   "Clave caducada"     -> consiguela de nuevo (paso 3)
+   "Sin conexion"       -> sin internet, o la red bloquea claude.ai
+
+   No arranca al encender el ordenador, aunque en el menu
+   aparece marcado  ->  Windows guarda aparte si esa entrada
+   esta desactivada (Administrador de tareas > Inicio de
+   aplicaciones). El widget lo detecta y lo repara solo al
+   abrirse; si sigue igual, clic derecho > Diagnostico y
+   mandame lo que ponga en "Arranque con Windows".
+
+Ya NO pueden abrirse dos widgets a la vez. Si venias de una version
+anterior y veias que parpadeaba entre claro y oscuro o que
+desaparecia, eran dos copias superpuestas. Se arregla al instalar.
+
+Si alguna vez se cierra solo, deja un archivo error.log en las
+carpetas de configuracion. Mandamelo y lo miro.
+
+
+===========================================================
+ 7. DONDE GUARDA SUS DATOS
+===========================================================
+
+La configuracion se guarda por duplicado en cuatro rutas, para que no
+se pierda aunque una este bloqueada:
+
+   %LOCALAPPDATA%\Claude Usage\config.json
+   %APPDATA%\ClaudeGlass\config.json
+   (la carpeta del .exe)\config.json
+   %USERPROFILE%\.claudeglass\config.json
+
+Para desinstalar: cierra el widget, quita "Iniciar con Windows" desde
+su menu y borra la carpeta %LOCALAPPDATA%\ClaudeGlass y esas cuatro
+carpetas de configuracion.
+
+===========================================================
