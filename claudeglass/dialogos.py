@@ -11,7 +11,9 @@ from .tema import px, HAVE_PIL
 from .canal import APP_NAME, VERSION
 from .config import (load_cfg, save_cfg, cfg_dirs, CFG_NAME, _read_json,
                      clean_key, key_looks_real)
-from .api import listar_orgs, nombre_org
+from .api import listar_orgs, nombre_org, info_cuenta, KeyExpired
+from .config import anadir_cuenta, activar_cuenta, quitar_cuenta
+from . import login
 from .sistema import (_mi_ruta, autostart_activar, autostart_estado,
                       autostart_vetado, round_corners)
 
@@ -135,7 +137,6 @@ class Dialogos:
                        bg=T.MENU_HOVER, fg=T.MENU_FG, relief='flat', bd=0,
                        highlightthickness=0, insertbackground=T.MENU_ACCENT)
         ent.pack(fill='x', padx=px(10), pady=px(9))
-        ent.insert(0, cfg.get('session_key', ''))
 
         msg = tk.Label(cuerpo, text='', bg=T.MENU_BG, fg=T.CLOSE_HOV,
                        font=('Segoe UI', -px(10)), wraplength=ancho - px(30),
@@ -148,20 +149,34 @@ class Dialogos:
                 msg.config(text='Esa clave no parece válida: tiene que empezar '
                                 'por "sk-ant-" y ser larga. Cópiala entera.')
                 return
-            c = load_cfg()
-            c['session_key'] = val
-            c['theme'] = T.THEME
-            c.pop('org_id', None)
-            c.pop('orgs', None)
-            if not save_cfg(c):
-                msg.config(text='No se ha podido guardar en ninguna carpeta.\n'
-                                + '\n'.join(f'{p}: {why}'
-                                            for p, _o, why in C.SAVE_REPORT))
-                return
-            self._dlg = None
-            w.destroy()
-            self.status_msg = None
-            self.refresh()
+            msg.config(text='Comprobando…', fg=T.MENU_MUTED)
+
+            def comprobar():
+                try:
+                    datos = info_cuenta(val)
+                except KeyExpired:
+                    datos = 'rechazada'
+                except Exception:
+                    datos = (None, None)          # sin red: se guarda igual
+                self.root.after(0, terminar, datos)
+
+            def terminar(datos):
+                if not w.winfo_exists():
+                    return
+                if datos == 'rechazada':
+                    msg.config(text='Claude no acepta esa clave. Vuelve a '
+                                    'copiarla o inicia sesión.', fg=T.CLOSE_HOV)
+                    return
+                if not anadir_cuenta(val, *datos):
+                    msg.config(text='No se ha podido guardar en ninguna carpeta.\n'
+                                    + '\n'.join(f'{p}: {why}'
+                                                for p, _o, why in C.SAVE_REPORT),
+                               fg=T.CLOSE_HOV)
+                    return
+                self._dlg = None
+                w.destroy()
+                self._cuenta_cambiada()
+            threading.Thread(target=comprobar, daemon=True).start()
 
         bf = tk.Frame(cuerpo, bg=T.MENU_BG)
         bf.pack(pady=(px(14), px(14)))
@@ -186,10 +201,10 @@ class Dialogos:
         previa = getattr(self, '_orgdlg', None)
         if previa is not None and previa.winfo_exists():
             previa.lift(); previa.focus_force(); return
-        w = self._ventana('Cuenta de Claude', px(320))
+        w = self._ventana('Organización', px(320))
         self._orgdlg = w
         cuerpo = w._cuerpo
-        tk.Label(cuerpo, text='¿De qué cuenta quieres ver el consumo?',
+        tk.Label(cuerpo, text='¿De qué organización quieres ver el consumo?',
                  bg=T.MENU_BG, fg=T.MENU_MUTED, font=('Segoe UI', -px(11)),
                  anchor='w').pack(fill='x', padx=px(14), pady=(px(4), px(6)))
         lista = tk.Frame(cuerpo, bg=T.MENU_BG)
@@ -232,5 +247,129 @@ class Dialogos:
         threading.Thread(target=recargar, daemon=True).start()
 
         self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(160))
+        round_corners(w)
+        w.focus_force()
+
+    # ---- cuentas -------------------------------------------------------
+    def _cuenta_cambiada(self):
+        """Tras cambiar de cuenta: fuera los datos de la anterior y a leer."""
+        self.usage = {}
+        self.pct = None
+        self.reset_iso = None
+        self.status_msg = None
+        self._render_all()
+        self.refresh()
+
+    def _cambiar_cuenta(self, cid):
+        if activar_cuenta(cid):
+            self._cuenta_cambiada()
+
+    def _quitar_cuenta(self, cid):
+        cfg = load_cfg()
+        c = next((x for x in cfg.get('cuentas') or [] if x.get('id') == cid), {})
+        nombre = c.get('email') or c.get('nombre') or 'esta cuenta'
+        w = self._ventana('Quitar cuenta', px(320))
+        cuerpo = w._cuerpo
+        tk.Label(cuerpo, text=f'¿Quitar {nombre} del widget?\n'
+                              'Podrás volver a añadirla cuando quieras.',
+                 bg=T.MENU_BG, fg=T.MENU_FG, font=('Segoe UI', -px(12)),
+                 justify='left', anchor='w', wraplength=px(290)).pack(
+                     fill='x', padx=px(14), pady=(px(6), 0))
+
+        def si():
+            w.destroy()
+            era_activa = cid == cfg.get('cuenta_activa')
+            quitar_cuenta(cid)
+            if era_activa:
+                self._cuenta_cambiada()
+
+        bf = tk.Frame(cuerpo, bg=T.MENU_BG)
+        bf.pack(pady=px(14))
+        self._boton(bf, 'Cancelar', w.destroy).pack(side='left', padx=px(5))
+        self._boton(bf, 'Quitar', si, primario=True).pack(side='left', padx=px(5))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(150))
+        round_corners(w)
+        w.focus_force()
+
+    def _login_dialog(self, e=None):
+        """Iniciar sesion en Claude en una ventana del navegador.
+
+        La clave se recoge sola al entrar; pegarla a mano queda como plan B.
+        """
+        previa = getattr(self, '_dlg', None)
+        if previa is not None and previa.winfo_exists():
+            previa.lift(); previa.focus_force(); return
+        w = self._ventana('Iniciar sesión en Claude', px(360))
+        self._dlg = w
+        cuerpo = w._cuerpo
+        texto = tk.Label(cuerpo, bg=T.MENU_BG, fg=T.MENU_FG, justify='left',
+                         anchor='w', wraplength=px(330),
+                         font=('Segoe UI', -px(12)),
+                         text='Se abrirá una ventana para entrar en Claude con '
+                              'la cuenta que quieras. Cuando entres, se cerrará '
+                              'sola y el widget quedará conectado.')
+        texto.pack(fill='x', padx=px(14), pady=(px(6), 0))
+        estado = {'cancelado': False, 'abierto': False}
+
+        bf = tk.Frame(cuerpo, bg=T.MENU_BG)
+        bf.pack(pady=(px(14), px(4)))
+        manual = tk.Label(cuerpo, text='o pega la sessionKey a mano',
+                          bg=T.MENU_BG, fg=T.MENU_MUTED, cursor='hand2',
+                          font=('Segoe UI', -px(10), 'underline'))
+        manual.pack(pady=(0, px(12)))
+
+        def cerrar():
+            estado['cancelado'] = True
+            self._dlg = None
+            if w.winfo_exists():
+                w.destroy()
+
+        def a_mano(_e=None):
+            cerrar()
+            self.root.after(1, self._key_dialog)
+        manual.bind('<Button-1>', a_mano)
+
+        def fin(resultado):
+            if estado['cancelado'] or not w.winfo_exists():
+                return
+            if isinstance(resultado, tuple):
+                anadir_cuenta(*resultado)
+                cerrar()
+                self._cuenta_cambiada()
+                return
+            estado['abierto'] = False
+            texto.config(text=resultado, fg=T.CLOSE_HOV)
+            abrir_b.pack(side='left', padx=px(5))
+
+        def trabajar():
+            try:
+                clave = login.iniciar_sesion(lambda: estado['cancelado'])
+                try:
+                    nombre, email = info_cuenta(clave)
+                except Exception:
+                    nombre, email = None, None
+                res = (clave, nombre, email)
+            except login.Cancelado:
+                res = ('Se cerró la ventana sin iniciar sesión. '
+                       'Puedes volver a intentarlo.')
+            except Exception as ex:
+                res = f'No se ha podido abrir el navegador. {ex}'
+            self.root.after(0, fin, res)
+
+        def abrir():
+            if estado['abierto']:
+                return
+            estado['abierto'] = True
+            abrir_b.pack_forget()
+            texto.config(text='Esperando a que inicies sesión en la ventana '
+                              'del navegador…', fg=T.MENU_FG)
+            threading.Thread(target=trabajar, daemon=True).start()
+
+        self._boton(bf, 'Cancelar', cerrar).pack(side='left', padx=px(5))
+        abrir_b = self._boton(bf, 'Abrir ventana', abrir, primario=True)
+        abrir_b.pack(side='left', padx=px(5))
+        w.protocol('WM_DELETE_WINDOW', cerrar)
+        w.bind('<Return>', lambda e: abrir())
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - px(170))
         round_corners(w)
         w.focus_force()

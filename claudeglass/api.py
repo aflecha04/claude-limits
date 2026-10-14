@@ -6,7 +6,7 @@ import json
 import subprocess
 from datetime import datetime, timezone
 
-from .config import load_cfg, save_cfg
+from .config import load_cfg, save_cfg, poner_datos_cuenta
 
 # ─── API ────────────────────────────────────────────────────────────────
 API_URL  = 'https://claude.ai/api/organizations/{}/usage'
@@ -96,6 +96,23 @@ def resolve_org(cfg):
     return cfg['org_id']
 
 
+_ORGS_AL_DIA = set()
+
+ACCOUNT_URL = 'https://claude.ai/api/account'
+
+
+def info_cuenta(clave):
+    """(nombre, correo) de la cuenta de esa sessionKey."""
+    headers, body = _split(_curl(ACCOUNT_URL, f'sessionKey={clave}'))
+    if _status(headers) in (401, 403):
+        raise KeyExpired('Clave caducada')
+    d = json.loads(body)
+    d = d.get('account', d) if isinstance(d, dict) else {}
+    email = str(d.get('email_address') or '').strip()
+    nombre = str(d.get('display_name') or d.get('full_name') or '').strip()
+    return (nombre or email.split('@')[0] or 'Cuenta'), email
+
+
 def nombre_org(cfg):
     """Nombre de la organizacion elegida, si se conoce."""
     for par in cfg.get('orgs') or []:
@@ -114,12 +131,13 @@ def fetch_session():
         raise NoKey('Falta sessionKey')
     if not cfg.get('org_id'):
         resolve_org(cfg)
-    elif not cfg.get('orgs'):
-        # viene de una version que no guardaba la lista: se rellena una vez
-        # para poder ofrecer el cambio de cuenta en el menu
+    elif not cfg.get('orgs') or cfg.get('cuenta_activa') not in _ORGS_AL_DIA:
+        # la lista de organizaciones se repasa una vez por sesion y cuenta:
+        # por si viene de una version que no la guardaba o han cambiado
         try:
             cfg['orgs'] = [[u, n] for u, n, _c in listar_orgs(cfg)]
             save_cfg(cfg)
+            _ORGS_AL_DIA.add(cfg.get('cuenta_activa'))
         except KeyExpired:
             raise
         except Exception:
@@ -137,6 +155,15 @@ def fetch_session():
     if km and len(km.group(1)) > 30 and km.group(1) != cfg.get('session_key'):
         cfg['session_key'] = km.group(1)
         save_cfg(cfg)
+
+    # cuentas que vienen de una version anterior: se les pone nombre una vez
+    activa = next((c for c in cfg.get('cuentas') or []
+                   if c.get('id') == cfg.get('cuenta_activa')), None)
+    if activa is not None and not activa.get('email'):
+        try:
+            poner_datos_cuenta(*info_cuenta(cfg['session_key']))
+        except Exception:
+            pass
 
     data = normalizar_limites(json.loads(body))
     pct, reset = cuota(data, 'five_hour')
@@ -253,3 +280,15 @@ def countdown_clock(iso_str):
     m = (secs % 3600) // 60
     s = secs % 60
     return f'{h}:{m:02d}:{s:02d}'
+
+
+def nombre_corto_org(nombre):
+    """'ana@x.com's Organization' -> 'ana'; 'Equipo's Individual Org' ->
+    'Equipo'. Para que quepa en el menu."""
+    if not nombre:
+        return nombre
+    corto = re.sub(r"[’‘']s (Organization|Individual Org)$", '',
+                   nombre).strip()
+    if '@' in corto:
+        corto = corto.split('@')[0]
+    return corto or nombre

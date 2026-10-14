@@ -120,7 +120,7 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
         # primer arranque sin clave -> pedirla UNA vez
         if not cfg.get('session_key'):
             self._auto_prompted = True
-            self.root.after(400, self._key_dialog)
+            self.root.after(400, self._login_dialog)
 
     # ---- layout -------------------------------------------------------
     def _build(self):
@@ -164,12 +164,12 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
             self.reset_iso = None
             self.usage = {}
             if err == 'nokey':
-                self.status_msg = 'Falta sessionKey'
+                self.status_msg = 'Inicia sesión'
                 self._cd = 'clic dcho'
                 # abrir el dialogo solo la primera vez, nunca en bucle
                 if not self._auto_prompted:
                     self._auto_prompted = True
-                    self.root.after(300, self._key_dialog)
+                    self.root.after(300, self._login_dialog)
             elif err == 'expired':
                 self.status_msg = 'Clave caducada'
                 self._cd = 'clic dcho'
