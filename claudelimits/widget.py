@@ -8,11 +8,12 @@ import tkinter.font as tkfont
 
 from . import tema as T
 from . import actualizaciones
-from .tema import apply_theme, apply_scale, px
+from .tema import apply_theme, apply_scale, px, mpx
 from .canal import APP_NAME
 from .config import load_cfg, save_cfg
 from .api import (fetch_session, NoKey, KeyExpired, countdown,
-                  countdown_clock, _reset_secs, REFRESH_MS, TOPMOST_MS)
+                  countdown_clock, _reset_secs, REFRESH_MS, TOPMOST_MS,
+                  Frenado, REFRESH_FRENADO_MS, FRENADO_DURA_MS)
 from .sistema import (_dpi_aware, round_corners, asegurar_fuera_de_barra,
                       log_error, tapado)
 from .panel import Panel
@@ -21,6 +22,11 @@ from .ajustes import Ajustes
 from .dibujo import Dibujo
 from .dialogos import Dialogos
 from .posicion import Posicion
+
+
+def _ahora_ms():
+    import time
+    return time.monotonic() * 1000
 
 
 class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
@@ -168,6 +174,10 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
         try:
             pct, reset_iso, data = fetch_session()
             self.root.after(0, self._apply, pct, reset_iso, None, data)
+        except Frenado:
+            # Claude pide calma: se mantienen los ultimos datos y se consulta
+            # cada 30 s durante un rato, en vez de cada 15
+            self.root.after(0, self._frenado)
         except NoKey:
             self.root.after(0, self._apply, None, None, 'nokey', None)
         except KeyExpired:
@@ -237,7 +247,7 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
             # el menu, el panel y las ventanas abiertas, igual: delante solo
             # si algo de otro programa las tapa
             for attr in ('_menu_win', '_panel', '_dlg', '_szdlg', '_txtwin',
-                         '_orgdlg', '_coldlg', '_ayudadlg'):
+                         '_orgdlg', '_coldlg', '_ayudadlg', '_avisodlg'):
                 w = getattr(self, attr, None)
                 if w is not None and w.winfo_exists() and tapado(w):
                     w.lift()
@@ -246,12 +256,25 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
             pass
         self.root.after(TOPMOST_MS, self._tick_topmost)
 
+    def _frenado(self):
+        self._cargando = False
+        self._frenado_hasta = _ahora_ms() + FRENADO_DURA_MS
+        self._draw_labels()
+
+    def _intervalo_ms(self):
+        """Cada cuanto se consulta: 15 s, o 30 s si Claude ha pedido calma."""
+        if _ahora_ms() < getattr(self, '_frenado_hasta', 0):
+            return REFRESH_FRENADO_MS
+        return REFRESH_MS
+
+    PASO_MS = 15_000
+
     def _tick_countdown(self):
         if self.pct is not None:
             self._update_sub()
-        self.root.after(30_000, self._tick_countdown)
-        self._since = getattr(self, '_since', 0) + 30_000
-        if self._since >= REFRESH_MS:
+        self.root.after(self.PASO_MS, self._tick_countdown)
+        self._since = getattr(self, '_since', 0) + self.PASO_MS
+        if self._since >= self._intervalo_ms():
             self._since = 0
             self.refresh()
 
@@ -270,11 +293,58 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
         def mirar():
             nueva = actualizaciones.comprobar()
             try:
-                self.root.after(0, lambda: setattr(self, 'nueva_version', nueva))
+                self.root.after(0, self._hay_version, nueva)
             except RuntimeError:
                 pass                       # el widget ya se habia cerrado
         threading.Thread(target=mirar, daemon=True).start()
         self.root.after(actualizaciones.COMPROBAR_MS, self._tick_actualizaciones)
+
+    def _hay_version(self, nueva):
+        """Apunta la version nueva (sale en el menu) y, la primera vez que se
+        ve cada una, lo dice con un mensaje."""
+        self.nueva_version = nueva
+        if not nueva:
+            return
+        cfg = load_cfg()
+        if cfg.get('version_avisada') == nueva[0]:
+            return
+        cfg['version_avisada'] = nueva[0]
+        save_cfg(cfg, durable=False)
+        self._aviso_version(nueva[0])
+
+    def _aviso_version(self, version):
+        previa = getattr(self, '_avisodlg', None)
+        if previa is not None and previa.winfo_exists():
+            return
+        w = self._ventana('Hay una versión nueva', mpx(300))
+        self._avisodlg = w
+        cuerpo = w._cuerpo
+        tk.Label(cuerpo, text=f'Ya está disponible Claude Limits {version}.\n'
+                              'Se instala sola en unos segundos y conserva '
+                              'tus cuentas y ajustes.',
+                 bg=T.MENU_BG, fg=T.MENU_FG, justify='left', anchor='w',
+                 wraplength=mpx(270), font=(T.FUENTE, -mpx(12))).pack(
+                     fill='x', padx=mpx(18), pady=(mpx(4), 0))
+        tk.Label(cuerpo, text='Si prefieres hacerlo luego, lo tienes en el menú '
+                              '(clic derecho).',
+                 bg=T.MENU_BG, fg=T.MENU_MUTED, justify='left', anchor='w',
+                 wraplength=mpx(270), font=(T.FUENTE, -mpx(10))).pack(
+                     fill='x', padx=mpx(18), pady=(mpx(6), 0))
+
+        def cerrar():
+            self._avisodlg = None
+            w.destroy()
+
+        def instalar():
+            cerrar()
+            self._instalar_actualizacion()
+
+        bf = tk.Frame(cuerpo, bg=T.MENU_BG)
+        bf.pack(fill='x', padx=mpx(18), pady=(mpx(14), mpx(16)))
+        self._boton(bf, 'Instalar ahora', instalar, primario=True).pack(side='right')
+        self._boton(bf, 'Más tarde', cerrar).pack(side='right', padx=(0, mpx(8)))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(170))
+        round_corners(w)
 
     def _instalar_actualizacion(self):
         nueva = self.nueva_version

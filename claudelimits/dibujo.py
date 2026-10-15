@@ -62,7 +62,7 @@ class Dibujo:
 
     def _render_shapes(self, pct):
         # Si no ha cambiado nada de lo que se ve, se reutiliza la imagen: la
-        # barra se repinta cada 30 s (y cada segundo con Claude dormido, por
+        # barra se repinta cada 15 s (y cada segundo con Claude dormido, por
         # el reloj), pero casi nunca cambia de verdad.
         firma = (T.THEME, T.ACCENT_NAME, T.BAR_START, T.W, T.H, pct, self._rotulo()[0],
                  self._limite_agotado())

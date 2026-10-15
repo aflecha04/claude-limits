@@ -97,7 +97,12 @@ https://claude.ai > sessionKey). No la compartas con nadie.
         * Cerrar
         * Cuando haya version nueva: "Instalar version X", con un clic
 
-Se actualiza solo cada 30 segundos.
+   - VERSION NUEVA: cuando la haya, el widget lo dice con un mensaje
+     ("Instalar ahora" o "Mas tarde"). Se instala sola en unos
+     segundos y conserva tus cuentas y ajustes. Si eliges "Mas
+     tarde", la tienes en el menu.
+
+El consumo se actualiza solo cada 15 segundos.
 
 
 ===========================================================

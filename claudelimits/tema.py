@@ -54,7 +54,7 @@ TINT = CARD_BD = HILITE = INK = LABEL = SUBTLE = TRACK = TRACK_SH = ''
 TIME = BTN = BTN_HOV = CLOSE_HOV = BAR_START = BAR_END = ''
 MENU_BG = MENU_BD = MENU_FG = MENU_MUTED = MENU_HOVER = ''
 MENU_ACCENT = MENU_SEP = ''
-SH_DARK = SH_LIGHT = ACCENT = TEXT_ON_FILL = ROJO = ''
+SH_DARK = SH_LIGHT = ACCENT = TEXT_ON_FILL = TEXT_ON_ACCENT = ROJO = ''
 PANEL_BG = TILE_BD = ''
 ALPHA = 0.93
 THEME = 'dark'
@@ -86,7 +86,7 @@ ACCENTS = {
     'azul':    ('Azul',    ('#4b9dff', '#1f5fd0', '#7cb8ff', '#ffffff'),
                            ('#2f6fd0', '#1b4795', '#2f6fd0', '#ffffff')),
     'verde':   ('Verde',   ('#34c98a', '#0f8055', '#5fe0a6', '#ffffff'),
-                           ('#0f8a5c', '#0a5f40', '#0f8a5c', '#ffffff')),
+                           ('#0c7a51', '#0a5f40', '#0c7a51', '#ffffff')),
     'violeta': ('Violeta', ('#a78bfa', '#7a4ae2', '#c4b0ff', '#ffffff'),
                            ('#6d3fd6', '#4a2596', '#6d3fd6', '#ffffff')),
     'blanco':  ('Blanco',  ('#e8ecf4', '#aab2c2', '#e8ecf4', '#14171e'),
@@ -98,6 +98,7 @@ ACCENT_NAME = 'coral'
 def apply_accent(nombre):
     """Aplica el color elegido encima del tema activo."""
     global ACCENT_NAME, BAR_START, BAR_END, ACCENT, MENU_ACCENT, TEXT_ON_FILL
+    global TEXT_ON_ACCENT
     ACCENT_NAME = nombre if nombre in ACCENTS else 'coral'
     _, oscuro, claro = ACCENTS[ACCENT_NAME]
     ini, fin, suave, sobre = oscuro if THEME == 'dark' else claro
@@ -105,7 +106,21 @@ def apply_accent(nombre):
     # barra y le quitaba limpieza (mas aun en el tema claro).
     BAR_START = BAR_END = ini
     ACCENT = MENU_ACCENT = suave
-    TEXT_ON_FILL = sobre
+    # El texto que va encima de un color (la cifra sobre el relleno, el de un
+    # boton) se elige por contraste: blanco o casi negro, el que mejor se
+    # lea. Antes era siempre blanco y con el verde, el naranja o el azul en
+    # tema oscuro apenas se leia (contraste 2:1; lo minimo es 4,5:1).
+    TEXT_ON_FILL = texto_sobre(ini)
+    TEXT_ON_ACCENT = texto_sobre(suave)
+
+
+def texto_sobre(color):
+    """Blanco o casi negro: el que mas contraste tenga sobre 'color'."""
+    try:
+        return ('#ffffff' if contraste(color, '#ffffff') >= contraste(color, '#14171e')
+                else '#14171e')
+    except Exception:
+        return '#ffffff'
 
 
 # ─── Color personalizado ────────────────────────────────────────────────
@@ -139,21 +154,37 @@ def _sobre(c):
     return '#ffffff' if contraste(c, '#ffffff') >= contraste(c, '#14171e') else '#14171e'
 
 
+def _destaca(c, fondos, hacia, minimo=3.0, cifra=False):
+    """Aclara u oscurece 'c' hasta que destaque sobre todos los 'fondos' (y,
+    con cifra=True, hasta que la cifra encima se lea a 4,5:1)."""
+    for _ in range(30):
+        ok = all(contraste(c, f) >= minimo for f in fondos)
+        if ok and (not cifra or contraste(c, texto_sobre(c)) >= 4.5):
+            break
+        c = _mix(c, hacia, 0.08)
+    return c
+
+
 def set_color_propio(hexa):
-    """Anade (o cambia) el color 'propio' en la lista de colores."""
+    """Anade (o cambia) el color 'propio' en la lista de colores.
+
+    Se respeta el color elegido, pero si no se viera bien (un casi negro en
+    el tema oscuro, un amarillo palido en el claro) se aclara u oscurece lo
+    justo para que la barra destaque y la cifra se lea.
+    """
     c = normalizar_hex(hexa)
     if not c:
         ACCENTS.pop('propio', None)
         return None
-    oscuro = (c, c, _mix(c, '#ffffff', 0.25) if contraste(c, '#242832') < 4.5 else c,
-              _sobre(c))
-    # en el tema claro un color muy palido no se veria: se oscurece lo justo
-    claro_c = c
-    for _ in range(10):
-        if contraste(claro_c, '#fbfbfc') >= 3:
-            break
-        claro_c = _mix(claro_c, '#000000', 0.15)
-    claro = (claro_c, claro_c, claro_c, _sobre(claro_c))
+    # tema oscuro: que destaque sobre el carril y la tarjeta oscuros
+    osc = _destaca(c, (THEMES['dark']['TRACK'], THEMES['dark']['TINT']),
+                   '#ffffff', cifra=True)
+    osc_menu = _destaca(osc, (THEMES['dark']['MENU_BG'],), '#ffffff', 4.5)
+    oscuro = (osc, osc, osc_menu, texto_sobre(osc))
+    # tema claro: que destaque sobre el carril y el fondo claros
+    cla = _destaca(c, (THEMES['light']['TRACK'], THEMES['light']['TINT']),
+                   '#000000', cifra=True)
+    claro = (cla, cla, cla, texto_sobre(cla))
     ACCENTS['propio'] = ('Personalizado', oscuro, claro)
     return c
 

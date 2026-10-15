@@ -102,7 +102,7 @@ class Ajustes:
             ro = r * SS
             d.ellipse([x - ro, cy - ro, x + ro, cy + ro], fill=T.MENU_ACCENT)
             ri = int(ro * 0.42)
-            d.ellipse([x - ri, cy - ri, x + ri, cy + ri], fill=T.TEXT_ON_FILL)
+            d.ellipse([x - ri, cy - ri, x + ri, cy + ri], fill=T.TEXT_ON_ACCENT)
             foto = ImageTk.PhotoImage(img.resize((cw, ch), Image.LANCZOS))
             lienzo.delete('all')
             lienzo.create_image(0, 0, anchor='nw', image=foto)

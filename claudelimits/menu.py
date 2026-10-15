@@ -109,7 +109,7 @@ class Menu:
             r = (h * SS - 2 * SS) // 2
             if activo:
                 d.rounded_rectangle(caja, radius=r, fill=T.MENU_ACCENT)
-                bola = T.TEXT_ON_FILL
+                bola = T.TEXT_ON_ACCENT
                 cx = w * SS - SS - r
             else:
                 d.rounded_rectangle(caja, radius=r, fill=fondo,
@@ -120,7 +120,7 @@ class Menu:
             cy = h * SS // 2
             d.ellipse([cx - rb, cy - rb, cx + rb, cy + rb], fill=bola)
         return self._img_cache(('sw', activo, T.MENU_ACCENT, T.MENU_MUTED,
-                                T.TEXT_ON_FILL), dib, w, h, fondo)
+                                T.TEXT_ON_ACCENT), dib, w, h, fondo)
 
     def _avatar_img(self, letra, fondo):
         """Circulo del color elegido con la inicial de la cuenta."""
@@ -152,6 +152,12 @@ class Menu:
         aplicar()
         self._mrep.append(aplicar)
         return w
+
+    def _circulo_img(self, color, d_, fondo):
+        """Circulo lleno de 'color', de d_ pixeles, con bordes suaves."""
+        def dib(d, SS):
+            d.ellipse([0, 0, d_ * SS - 1, d_ * SS - 1], fill=color)
+        return self._img_cache(('circ', color), dib, d_, d_, fondo)
 
     def _color_mas_img(self, fondo):
         """Circulo vacio con un '+': hueco para el color propio."""
@@ -410,7 +416,7 @@ class Menu:
         def avatar():
             if not av.winfo_exists():
                 return
-            av.configure(bg=T.MENU_BG, fg=T.TEXT_ON_FILL)
+            av.configure(bg=T.MENU_BG, fg=T.TEXT_ON_ACCENT)
             im = self._avatar_img(nombre[:1], T.MENU_BG)
             if im is not None:
                 av.configure(image=im)
@@ -623,7 +629,7 @@ class Menu:
                              weight=('bold' if primario else 'normal'))
         normal = T.MENU_ACCENT if primario else T.MENU_HOVER
         encima = _mix(normal, T.MENU_FG, 0.12)
-        texto_c = T.TEXT_ON_FILL if primario else T.MENU_FG
+        texto_c = T.TEXT_ON_ACCENT if primario else T.MENU_FG
         bw, bh = fuente.measure(texto) + mpx(34), mpx(32)
         fondo = parent.cget('bg')
 

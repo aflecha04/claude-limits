@@ -38,7 +38,7 @@ _API = None
 
 
 def _api():
-    """advapi32 con sus firmas, preparado una sola vez (se usa cada 30 s)."""
+    """advapi32 con sus firmas, preparado una sola vez (se usa en cada consulta)."""
     global _API
     if _API is not None:
         return _API

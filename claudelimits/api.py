@@ -14,13 +14,19 @@ ORGS_URL = 'https://claude.ai/api/organizations'
 UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36')
 
-REFRESH_MS = 30_000           # auto-refresh cada 30 s
+REFRESH_MS = 15_000           # consulta cada 15 s
+REFRESH_FRENADO_MS = 30_000   # si Claude pide calma (429), cada 30 s un rato
+FRENADO_DURA_MS = 10 * 60_000  # ...durante 10 minutos; luego, vuelta a 15 s
 TOPMOST_MS = 600              # re-afirmar siempre-encima
 
 
 # ─── Errores tipados ────────────────────────────────────────────────────
 class NoKey(PermissionError):
     """No hay ninguna sessionKey configurada."""
+
+
+class Frenado(RuntimeError):
+    """claude.ai pide ir mas despacio (respuesta 429)."""
 
 
 class KeyExpired(PermissionError):
@@ -156,6 +162,8 @@ def fetch_session():
     if _status(headers) in (401, 403):
         # NUNCA borrar la clave guardada: solo avisar
         raise KeyExpired('Clave caducada')
+    if _status(headers) == 429:
+        raise Frenado('demasiadas consultas')
 
     # rotar la sessionKey SOLO si el servidor entrega una clave real y nueva
     km = re.search(r'sessionKey=(sk-ant-[^;\s]+)', headers)

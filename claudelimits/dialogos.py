@@ -568,16 +568,16 @@ class Dialogos:
             for chip, n in chips:
                 act = n == nav
                 chip.configure(bg=(T.MENU_ACCENT if act else T.MENU_HOVER),
-                               fg=(T.TEXT_ON_FILL if act else T.MENU_FG),
+                               fg=(T.TEXT_ON_ACCENT if act else T.MENU_FG),
                                font=(T.FUENTE, -mpx(12), 'bold' if act else 'normal'))
             for h in pasos.winfo_children():
                 h.destroy()
             for i, texto in enumerate(self._pasos_clave(nav), 1):
                 f = tk.Frame(pasos, bg=T.MENU_BG)
                 f.pack(fill='x', pady=(0, mpx(8)))
-                num = tk.Label(f, text=str(i), bg=T.MENU_BG, fg=T.TEXT_ON_FILL,
+                num = tk.Label(f, text=str(i), bg=T.MENU_BG, fg=T.TEXT_ON_ACCENT,
                                font=(T.FUENTE, -mpx(11), 'bold'), compound='center')
-                im = self._color_img(T.MENU_ACCENT, False, T.MENU_BG)
+                im = self._circulo_img(T.MENU_ACCENT, mpx(20), T.MENU_BG)
                 if im is not None:
                     num.configure(image=im)
                     num._img = im
