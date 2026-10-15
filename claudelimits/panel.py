@@ -6,7 +6,7 @@ import tkinter as tk
 from . import tema as T
 from .tema import px, _hex, Image, ImageDraw, ImageTk
 from .api import (cuota, campos_de_modelo, nombre_de_modelo, countdown,
-                  ritmo, PERIODO_SESION, PERIODO_SEMANA)
+                  ritmo, PERIODO_SEMANA)
 from .sistema import work_area, round_corners
 
 
@@ -154,13 +154,9 @@ class Panel:
         return filas
 
     def _panel_tarjetas(self):
-        """Lo que se ve en el panel: la sesion de 5 h (para su prevision)
-        y despues los limites semanales."""
-        filas = []
-        if getattr(self, 'pct', None) is not None:
-            filas.append(('Sesión de 5 h', self.pct, self.reset_iso,
-                          PERIODO_SESION))
-        return filas + self._panel_filas()
+        """Lo que se ve en el panel: los limites semanales. La sesion de 5 h
+        no, que ya esta en la barra (con su rayita de tiempo)."""
+        return self._panel_filas()
 
     def _limite_agotado(self):
         """True si algun limite del panel (semanal o de un modelo) esta al 100 %."""
