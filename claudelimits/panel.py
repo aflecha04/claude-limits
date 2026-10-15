@@ -78,9 +78,8 @@ class Panel:
         """Solo las formas: piezas y barras. El texto lo pone tkinter encima,
         que lo dibuja con el suavizado del sistema en vez de reducirlo
         desde una imagen a 4x."""
-        clave = (T.THEME, T.ACCENT_NAME, T.W, T.UI,
-                 tuple((round(p, 1), self._ritmo_de(p, r, per)[:2])
-                       for _t, p, r, per in filas))
+        clave = (T.THEME, T.ACCENT_NAME, T.BAR_START, T.W, T.UI,
+                 tuple(round(f[1], 1) for f in filas))
         cache = getattr(self, '_panel_cache', None)
         if cache is None:
             cache = self._panel_cache = {}
@@ -94,8 +93,7 @@ class Panel:
         img = Image.new('RGBA', (ancho * SS, alto * SS),
                         _hex(T.PANEL_BG or T.TINT) + (255,))
         d = ImageDraw.Draw(img)
-        for (_titulo, pct, res, periodo), m in zip(filas, maqueta):
-            tiempo, adelantado, _prev = self._ritmo_de(pct, res, periodo)
+        for (_titulo, pct, _res, _periodo), m in zip(filas, maqueta):
             d.rounded_rectangle([m['x0'] * SS, m['y0'] * SS,
                                  m['x1'] * SS, m['y1'] * SS],
                                 radius=px(12) * SS, fill=T.TINT,
@@ -109,19 +107,8 @@ class Panel:
             if pct and pct > 0:
                 total = bx1 - bx0
                 relleno = max(bh, int(round(total * min(pct, 100) / 100.0)))
-                color = T.ROJO if adelantado else T.BAR_START
                 d.rounded_rectangle([bx0, by0, bx0 + relleno - 1, by0 + bh - 1],
-                                    radius=br, fill=color)
-            if tiempo is not None and 0 < tiempo < 100:
-                xm = int(bx0 + (bx1 - bx0) * tiempo / 100.0)
-                a = max(SS, px(2) * SS // 2 * 2)
-                # sobre el relleno, en el color del texto de encima del relleno
-                # (con el color blanco, una raya blanca no se veia)
-                lleno = pct and xm <= bx0 + (bx1 - bx0) * min(pct, 100) / 100.0
-                d.rounded_rectangle([xm - a // 2, by0 - SS * 2, xm + a // 2,
-                                     by0 + bh + SS * 2], radius=a // 2,
-                                    fill=(('#ffffff' if adelantado else T.TEXT_ON_FILL)
-                                          if lleno else T.MENU_FG))
+                                    radius=br, fill=T.BAR_START)
 
         out = img.resize((ancho, alto), Image.LANCZOS).convert('RGB')
         self._panel_photo = ImageTk.PhotoImage(out)
