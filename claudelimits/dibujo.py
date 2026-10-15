@@ -287,7 +287,16 @@ class Dibujo:
         la tapa una copia en el color del relleno (_rotulo_sobre_relleno).
         """
         texto, fuente = self._rotulo()
-        return texto, self.bar_x0 + px(self.ROT_PAD), T.INK, fuente
+        tx = self.bar_x0 + px(self.ROT_PAD)
+        # Si el relleno es tan corto que no cubre la cifra entera, la cifra se
+        # pone DESPUES del relleno, sobre el carril. Partida en dos colores
+        # justo por el borde del relleno se veia una rayita de color (el
+        # suavizado de Windows) dentro del numero, p. ej. en un 11 %.
+        fin = self._fin_relleno(self.pct) if (self.pct and self.pct > 0) else self.bar_x0
+        self._rotulo_dentro = fin >= tx + fuente.measure(texto) + px(4)
+        if not self._rotulo_dentro and self.pct and self.pct > 0:
+            tx = max(tx, int(round(fin)) + px(6))
+        return texto, tx, T.INK, fuente
 
     def _rotulo_sobre_relleno(self, texto, tx, cy, fuente):
         """Copia del rotulo en TEXT_ON_FILL, recortada exactamente al relleno.
@@ -305,7 +314,8 @@ class Dibujo:
         ancho = int(round(fin)) - x0
         img = getattr(self, '_shape_img', None)
         sub = getattr(self, '_cv_fill', None)
-        if not (HAVE_PIL and img is not None and ancho > 0 and fin > tx):
+        if not (HAVE_PIL and img is not None and ancho > 0 and fin > tx
+                and getattr(self, '_rotulo_dentro', True)):
             if sub is not None:
                 c.itemconfig(self._cv_fill_id, state='hidden')
             return
