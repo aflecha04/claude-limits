@@ -14,7 +14,7 @@ from .config import load_cfg, save_cfg
 from .api import (fetch_session, NoKey, KeyExpired, countdown,
                   countdown_clock, _reset_secs, REFRESH_MS, TOPMOST_MS)
 from .sistema import (_dpi_aware, round_corners, asegurar_fuera_de_barra,
-                      log_error)
+                      log_error, tapado)
 from .panel import Panel
 from .menu import Menu
 from .ajustes import Ajustes
@@ -224,7 +224,9 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
     # ---- temporizadores ------------------------------------------------
     def _tick_topmost(self):
         try:
-            self.root.attributes('-topmost', True)
+            # solo se vuelve a poner delante si algo lo tapa (ver sistema.tapado)
+            if tapado(self.root):
+                self.root.attributes('-topmost', True)
             corregido = (asegurar_fuera_de_barra(self.root)
                          if self.root.winfo_ismapped() else None)
             if corregido is not None and not getattr(self, '_barra_avisado', False):
@@ -232,12 +234,12 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
                 self._barra_avisado = True
                 log_error('BARRA DE TAREAS (no es un fallo, ya corregido)\n'
                           f'  la ventana habia perdido la marca: estilo {corregido:#x}')
-            # el widget se reafirma encima cada 600 ms; el menu y los dialogos
-            # abiertos tienen que subir con el, o quedarian tapados
+            # el menu, el panel y las ventanas abiertas, igual: delante solo
+            # si algo de otro programa las tapa
             for attr in ('_menu_win', '_panel', '_dlg', '_szdlg', '_txtwin',
                          '_orgdlg', '_coldlg', '_ayudadlg'):
                 w = getattr(self, attr, None)
-                if w is not None and w.winfo_exists():
+                if w is not None and w.winfo_exists() and tapado(w):
                     w.lift()
                     w.attributes('-topmost', True)
         except Exception:

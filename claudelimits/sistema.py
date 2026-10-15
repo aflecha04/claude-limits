@@ -338,6 +338,58 @@ _WS_EX_TOOLWINDOW = 0x00000080
 _WS_EX_APPWINDOW = 0x00040000
 
 
+_FAMILIA = ('claudeglass', 'claude limits')
+
+
+def tapado(widget):
+    """True si alguna ventana de OTRO programa esta por encima y tapa a esta.
+
+    Antes el widget se volvia a poner delante cada 600 ms pasara lo que
+    pasara. Eso hacia que Windows lo recolocara y repintara sin parar, y si
+    habia otra copia del widget al lado (la version de siempre), las dos se
+    quitaban el primer puesto por turnos: vibraba y parpadeaba, sobre todo
+    con el menu o el panel abiertos. Ahora solo se pone delante si algo lo
+    tapa de verdad, y nunca se pelea con sus propias ventanas ni con otra
+    copia del widget.
+    """
+    try:
+        import ctypes
+        from ctypes import wintypes
+        u = ctypes.windll.user32
+        hwnd = _ventana_nativa(widget)
+        if not hwnd:
+            return False
+        mio = wintypes.RECT()
+        u.GetWindowRect(hwnd, ctypes.byref(mio))
+        propio = os.getpid()
+        pid = wintypes.DWORD()
+        otro = wintypes.RECT()
+        titulo = ctypes.create_unicode_buffer(64)
+        oculto = ctypes.c_int()
+        h = u.GetWindow(hwnd, 3)                      # GW_HWNDPREV: la de encima
+        vistas = 0
+        while h and vistas < 400:
+            vistas += 1
+            if u.IsWindowVisible(h):
+                u.GetWindowRect(h, ctypes.byref(otro))
+                if (otro.left < mio.right and otro.right > mio.left
+                        and otro.top < mio.bottom and otro.bottom > mio.top):
+                    u.GetWindowThreadProcessId(h, ctypes.byref(pid))
+                    u.GetWindowTextW(h, titulo, 64)
+                    try:
+                        ctypes.windll.dwmapi.DwmGetWindowAttribute(
+                            h, 14, ctypes.byref(oculto), ctypes.sizeof(oculto))
+                    except Exception:
+                        oculto.value = 0
+                    if (pid.value != propio and not oculto.value
+                            and not titulo.value.lower().startswith(_FAMILIA)):
+                        return True
+            h = u.GetWindow(h, 3)
+        return False
+    except Exception:
+        return False
+
+
 def _ventana_nativa(widget):
     """HWND de la ventana de verdad (el marco que ve Windows, no el hijo de Tk)."""
     import ctypes
