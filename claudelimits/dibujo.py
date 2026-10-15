@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Pintado de la barra: tarjeta, carril, relleno y rotulos."""
 
+import os
 import tkinter as tk
 
 from . import tema as T
@@ -143,9 +144,71 @@ class Dibujo:
                       fill=T.TRACK)
             d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=T.CLOSE_HOV)
 
+        # El numero, dibujado aqui mismo y no por Windows: la parte sobre el
+        # relleno en su color y la del carril en el del texto, recortadas con
+        # suavizado en gris. Con el texto de Windows (ClearType, que pinta
+        # con subpixeles de color) el corte justo por el borde del relleno
+        # dejaba una rayita roja o azul dentro de la cifra, p. ej. en un 11 %.
+        self._rotulo_pil = self._rotulo_en_imagen(img, fw if (pct and pct > 0) else 0,
+                                                  mask if (pct and pct > 0) else None,
+                                                  x0, y0, y1)
+
         out = img.resize((T.W, T.H), Image.LANCZOS)
         self._shape_img = ImageTk.PhotoImage(out)
         return self._shape_img
+
+    _FUENTES_PIL = {}
+
+    def _fuente_pil(self, tam, negrita):
+        """La misma letra que el resto (Segoe UI Variable, o Segoe UI), para
+        Pillow. None si no se encuentra: entonces el numero lo pinta Tk."""
+        clave = (tam, negrita, T.FUENTE)
+        if clave in self._FUENTES_PIL:
+            return self._FUENTES_PIL[clave]
+        from PIL import ImageFont
+        carpeta = os.path.join(os.environ.get('WINDIR', r'C:\Windows'), 'Fonts')
+        fuente = None
+        try:
+            if 'Variable' in T.FUENTE:
+                fuente = ImageFont.truetype(os.path.join(carpeta, 'SegUIVar.ttf'), tam)
+                fuente.set_variation_by_name('Bold Text' if negrita else 'Regular')
+        except Exception:
+            fuente = None
+        if fuente is None:
+            try:
+                fuente = ImageFont.truetype(os.path.join(
+                    carpeta, 'segoeuib.ttf' if negrita else 'segoeui.ttf'), tam)
+            except Exception:
+                fuente = None
+        self._FUENTES_PIL[clave] = fuente
+        return fuente
+
+    def _rotulo_en_imagen(self, img, fw, mask_relleno, x0, y0, y1):
+        """Pinta el rotulo en la imagen (a 4x). True si lo ha pintado."""
+        texto, fuente_tk = self._rotulo()
+        tam = abs(int(fuente_tk.cget('size'))) * self.SS
+        negrita = fuente_tk.cget('weight') == 'bold'
+        fuente = self._fuente_pil(tam, negrita)
+        if fuente is None:
+            return False
+        SS = self.SS
+        tx = (self.bar_x0 + px(self.ROT_PAD)) * SS
+        cy = (y0 + y1) // 2
+        letras = Image.new('L', img.size, 0)
+        ImageDraw.Draw(letras).text((tx, cy), texto, font=fuente, fill=255,
+                                    anchor='lm')
+        sobre = ('#ffffff' if getattr(self, '_adelantado', False)
+                 else T.TEXT_ON_FILL)
+        if mask_relleno is not None:
+            zona = Image.new('L', img.size, 0)
+            zona.paste(mask_relleno, (x0, y0))
+            dentro = ImageChops.multiply(letras, zona)
+            fuera = ImageChops.subtract(letras, dentro)
+            img.paste(T.INK, (0, 0), fuera)
+            img.paste(sobre, (0, 0), dentro)
+        else:
+            img.paste(T.INK, (0, 0), letras)
+        return True
 
     def _hook(self, item, hov, cmd):
         c = self.cv
@@ -287,16 +350,7 @@ class Dibujo:
         la tapa una copia en el color del relleno (_rotulo_sobre_relleno).
         """
         texto, fuente = self._rotulo()
-        tx = self.bar_x0 + px(self.ROT_PAD)
-        # Si el relleno es tan corto que no cubre la cifra entera, la cifra se
-        # pone DESPUES del relleno, sobre el carril. Partida en dos colores
-        # justo por el borde del relleno se veia una rayita de color (el
-        # suavizado de Windows) dentro del numero, p. ej. en un 11 %.
-        fin = self._fin_relleno(self.pct) if (self.pct and self.pct > 0) else self.bar_x0
-        self._rotulo_dentro = fin >= tx + fuente.measure(texto) + px(4)
-        if not self._rotulo_dentro and self.pct and self.pct > 0:
-            tx = max(tx, int(round(fin)) + px(6))
-        return texto, tx, T.INK, fuente
+        return texto, self.bar_x0 + px(self.ROT_PAD), T.INK, fuente
 
     def _rotulo_sobre_relleno(self, texto, tx, cy, fuente):
         """Copia del rotulo en TEXT_ON_FILL, recortada exactamente al relleno.
@@ -314,8 +368,7 @@ class Dibujo:
         ancho = int(round(fin)) - x0
         img = getattr(self, '_shape_img', None)
         sub = getattr(self, '_cv_fill', None)
-        if not (HAVE_PIL and img is not None and ancho > 0 and fin > tx
-                and getattr(self, '_rotulo_dentro', True)):
+        if not (HAVE_PIL and img is not None and ancho > 0 and fin > tx):
             if sub is not None:
                 c.itemconfig(self._cv_fill_id, state='hidden')
             return
@@ -337,9 +390,14 @@ class Dibujo:
         c.delete('lbl')
         texto, tx, col, fuente = self._texto_barra()
         cy = T.H // 2 + self._dy_optico(fuente)
-        c.create_text(tx, cy, text=texto, anchor='w', fill=col, font=fuente,
-                      tags='lbl')
-        self._rotulo_sobre_relleno(texto, tx, cy, fuente)
+        if HAVE_PIL and getattr(self, '_rotulo_pil', False):
+            sub = getattr(self, '_cv_fill', None)
+            if sub is not None:
+                c.itemconfig(self._cv_fill_id, state='hidden')
+        else:
+            c.create_text(tx, cy, text=texto, anchor='w', fill=col, font=fuente,
+                          tags='lbl')
+            self._rotulo_sobre_relleno(texto, tx, cy, fuente)
         if not self._cd:
             return
         # pegada a la X, alineada por la derecha. Sin fuente de emergencia:
