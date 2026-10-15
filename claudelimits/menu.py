@@ -153,6 +153,20 @@ class Menu:
         self._mrep.append(aplicar)
         return w
 
+    def _color_mas_img(self, fondo):
+        """Circulo vacio con un '+': hueco para el color propio."""
+        d_ = mpx(22)
+
+        def dib(d, SS):
+            n = d_ * SS
+            m = int(n * 0.2)
+            d.ellipse([m, m, n - 1 - m, n - 1 - m], outline=T.MENU_MUTED,
+                      width=int(SS * 1.2))
+            c, l = n // 2, int(n * 0.16)
+            d.line([(c - l, c), (c + l, c)], fill=T.MENU_MUTED, width=int(SS * 1.2))
+            d.line([(c, c - l), (c, c + l)], fill=T.MENU_MUTED, width=int(SS * 1.2))
+        return self._img_cache(('mas', T.MENU_MUTED), dib, d_, d_, fondo)
+
     def _mrow(self, parent, text, cmd, mark='', muted=False, bold=False,
               punto=None, icono=None, detalle=None, quitar=None,
               acento=False):
@@ -299,11 +313,21 @@ class Menu:
         fila = tk.Frame(parent)
         fila.pack(side='right')
         puntos = []
-        for clave in ACCENTS:
+        claves = [k for k in ACCENTS if k != 'propio'] + ['propio']
+        for clave in claves:
             punto = tk.Label(fila, bd=0, cursor='hand2')
             punto.pack(side='left', padx=(mpx(1), 0))
-            punto.bind('<Button-1>', lambda e, k=clave: self._y_reabrir(
-                lambda: self._set_accent(k)))
+            if clave == 'propio':
+                # el ultimo es el color propio: si ya hay uno guardado, el
+                # primer clic lo elige; si no lo hay, o ya esta elegido, el
+                # clic abre la ventanita para escribir su codigo
+                punto.bind('<Button-1>', lambda e: (
+                    self._y_reabrir(lambda: self._set_accent('propio'))
+                    if ('propio' in ACCENTS and T.ACCENT_NAME != 'propio')
+                    else self._color_dialog()))
+            else:
+                punto.bind('<Button-1>', lambda e, k=clave: self._y_reabrir(
+                    lambda: self._set_accent(k)))
             puntos.append((punto, clave))
 
         def pintar():
@@ -311,6 +335,14 @@ class Menu:
                 return
             fila.configure(bg=T.MENU_BG)
             for punto, clave in puntos:
+                if clave == 'propio' and 'propio' not in ACCENTS:
+                    im = self._color_mas_img(T.MENU_BG)
+                    if im is not None:
+                        punto.configure(image=im, bg=T.MENU_BG)
+                        punto._img = im
+                    else:
+                        punto.configure(text='+', fg=T.MENU_MUTED, bg=T.MENU_BG)
+                    continue
                 _n, oscuro, claro = ACCENTS[clave]
                 muestra = (oscuro if T.THEME == 'dark' else claro)[0]
                 im = self._color_img(muestra, clave == T.ACCENT_NAME, T.MENU_BG)

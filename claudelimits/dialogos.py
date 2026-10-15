@@ -373,3 +373,80 @@ class Dialogos:
         self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(170))
         round_corners(w)
         w.focus_force()
+
+    # ---- color propio --------------------------------------------------
+    def _color_dialog(self, e=None):
+        """Escribir el codigo de un color (#1e90ff) o elegirlo en la paleta
+        de Windows. Sin nada que instalar: la paleta es la del sistema."""
+        previa = getattr(self, '_coldlg', None)
+        if previa is not None and previa.winfo_exists():
+            previa.lift(); previa.focus_force(); return
+        w = self._ventana('Color personalizado', mpx(300))
+        self._coldlg = w
+        cuerpo = w._cuerpo
+        tk.Label(cuerpo, text='Escribe el código del color, por ejemplo #1e90ff',
+                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -mpx(11)),
+                 anchor='w').pack(fill='x', padx=mpx(14), pady=(mpx(4), mpx(8)))
+
+        fila = tk.Frame(cuerpo, bg=T.MENU_BG)
+        fila.pack(fill='x', padx=mpx(14))
+        muestra = tk.Frame(fila, width=mpx(34), height=mpx(34), bg=T.MENU_HOVER)
+        muestra.pack(side='left')
+        marco = tk.Frame(fila, bg=T.MENU_HOVER)
+        marco.pack(side='left', fill='x', expand=True, padx=(mpx(10), 0))
+        ent = tk.Entry(marco, font=('Consolas', -mpx(13)), bg=T.MENU_HOVER,
+                       fg=T.MENU_FG, relief='flat', bd=0, highlightthickness=0,
+                       insertbackground=T.MENU_FG)
+        ent.pack(fill='x', padx=mpx(10), pady=mpx(8))
+        propio = T.ACCENTS.get('propio')
+        ent.insert(0, propio[1][0] if propio else '#')
+
+        msg = tk.Label(cuerpo, text='', bg=T.MENU_BG, fg=T.CLOSE_HOV,
+                       font=(T.FUENTE, -mpx(10)), anchor='w')
+        msg.pack(fill='x', padx=mpx(14), pady=(mpx(6), 0))
+
+        def ver(_e=None):
+            c = T.normalizar_hex(ent.get())
+            muestra.configure(bg=(c or T.MENU_HOVER))
+            msg.configure(text='')
+        ent.bind('<KeyRelease>', ver)
+        ver()
+
+        def paleta():
+            from tkinter import colorchooser
+            actual = T.normalizar_hex(ent.get()) or '#1e90ff'
+            _rgb, elegido = colorchooser.askcolor(color=actual, parent=w,
+                                                  title='Elige un color')
+            if elegido:
+                ent.delete(0, 'end')
+                ent.insert(0, elegido)
+                ver()
+            w.lift()
+
+        def aplicar():
+            c = T.normalizar_hex(ent.get())
+            if not c:
+                msg.configure(text='Ese código no es un color. Prueba algo '
+                                   'como #1e90ff.')
+                return
+            T.set_color_propio(c)
+            self._coldlg = None
+            w.destroy()
+            self._set_accent('propio')
+            for repintar in list(getattr(self, '_mrep', [])):   # menu abierto
+                try:
+                    repintar()
+                except Exception:
+                    pass
+
+        bf = tk.Frame(cuerpo, bg=T.MENU_BG)
+        bf.pack(pady=(mpx(12), mpx(14)))
+        self._boton(bf, 'Paleta…', paleta).pack(side='left', padx=mpx(5))
+        self._boton(bf, 'Aplicar', aplicar, primario=True).pack(side='left',
+                                                                padx=mpx(5))
+        w.bind('<Return>', lambda e: aplicar())
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(170))
+        round_corners(w)
+        w.focus_force()
+        ent.focus_set()
+        ent.icursor('end')

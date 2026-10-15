@@ -31,6 +31,7 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
         _dpi_aware()
 
         cfg = load_cfg()
+        T.set_color_propio(cfg.get('accent_hex'))
         apply_theme(cfg.get('theme', 'dark'), cfg.get('accent', 'coral'))
 
         self.root = tk.Tk()
@@ -224,7 +225,7 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
             # el widget se reafirma encima cada 600 ms; el menu y los dialogos
             # abiertos tienen que subir con el, o quedarian tapados
             for attr in ('_menu_win', '_panel', '_dlg', '_szdlg', '_txtwin',
-                         '_orgdlg'):
+                         '_orgdlg', '_coldlg'):
                 w = getattr(self, attr, None)
                 if w is not None and w.winfo_exists():
                     w.lift()

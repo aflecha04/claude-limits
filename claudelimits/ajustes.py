@@ -188,6 +188,9 @@ class Ajustes:
                 cfg = load_cfg()
                 cfg['theme'] = T.THEME
                 cfg['accent'] = T.ACCENT_NAME
+                propio = T.ACCENTS.get('propio')
+                if propio:
+                    cfg['accent_hex'] = propio[1][0]
                 cfg['scale'] = round(self.user_scale, 3)
                 save_cfg(cfg, durable=False)
         threading.Thread(target=_persist, daemon=True).start()

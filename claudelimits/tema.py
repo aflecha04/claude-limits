@@ -106,6 +106,56 @@ def apply_accent(nombre):
     TEXT_ON_FILL = sobre
 
 
+# ─── Color personalizado ────────────────────────────────────────────────
+# Un color propio a partir de su codigo (#rrggbb). Sus versiones para fondo
+# oscuro y claro se calculan solas, con el mismo criterio de contraste que
+# los de fabrica: la cifra en blanco o en negro segun se lea mejor.
+def normalizar_hex(texto):
+    """'#1E90FF', '1e90ff' o '#19f' -> '#1e90ff'; None si no es un color."""
+    t = (texto or '').strip().lstrip('#').lower()
+    if len(t) == 3:
+        t = ''.join(c * 2 for c in t)
+    if len(t) != 6 or any(c not in '0123456789abcdef' for c in t):
+        return None
+    return '#' + t
+
+
+def _luminancia(c):
+    def lin(v):
+        v /= 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = _hex(c)
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+
+
+def contraste(a, b):
+    la, lb = sorted((_luminancia(a), _luminancia(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def _sobre(c):
+    return '#ffffff' if contraste(c, '#ffffff') >= contraste(c, '#14171e') else '#14171e'
+
+
+def set_color_propio(hexa):
+    """Anade (o cambia) el color 'propio' en la lista de colores."""
+    c = normalizar_hex(hexa)
+    if not c:
+        ACCENTS.pop('propio', None)
+        return None
+    oscuro = (c, c, _mix(c, '#ffffff', 0.25) if contraste(c, '#242832') < 4.5 else c,
+              _sobre(c))
+    # en el tema claro un color muy palido no se veria: se oscurece lo justo
+    claro_c = c
+    for _ in range(10):
+        if contraste(claro_c, '#fbfbfc') >= 3:
+            break
+        claro_c = _mix(claro_c, '#000000', 0.15)
+    claro = (claro_c, claro_c, claro_c, _sobre(claro_c))
+    ACCENTS['propio'] = ('Personalizado', oscuro, claro)
+    return c
+
+
 # ─── Escalado DPI ───────────────────────────────────────────────────────
 # Medidas de diseno a 96 ppp. Se multiplican por UI segun el DPI real, para
 # que la tarjeta (dibujada con Pillow en pixeles) y el texto de tkinter
