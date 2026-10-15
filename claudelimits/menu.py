@@ -582,6 +582,33 @@ class Menu:
         w._ancho = ancho
         return w
 
+    def _campo(self, parent, ancho, fuente, centrado=False):
+        """Caja de texto con las esquinas redondeadas (fondo dibujado con
+        Pillow y el cuadro de texto encima). Devuelve (contenedor, entrada)."""
+        f = tkfont.Font(font=fuente)
+        alto = f.metrics('linespace') + mpx(16)
+        fondo = parent.cget('bg')
+
+        def dib(d, SS):
+            d.rounded_rectangle([0, 0, ancho * SS - 1, alto * SS - 1],
+                                radius=mpx(8) * SS, fill=T.MENU_HOVER)
+        im = self._img_cache(('campo', T.MENU_HOVER), dib, ancho, alto, fondo)
+        caja = tk.Frame(parent, width=ancho, height=alto, bg=fondo)
+        caja.pack_propagate(False)
+        if im is not None:
+            fondo_l = tk.Label(caja, image=im, bd=0, bg=fondo)
+            fondo_l._img = im
+            fondo_l.place(x=0, y=0, relwidth=1, relheight=1)
+        else:
+            caja.configure(bg=T.MENU_HOVER)
+        ent = tk.Entry(caja, font=fuente, bg=T.MENU_HOVER, fg=T.MENU_FG,
+                       relief='flat', bd=0, highlightthickness=0,
+                       insertbackground=T.MENU_FG,
+                       justify=('center' if centrado else 'left'))
+        ent.place(x=mpx(10), rely=0.5, anchor='w', width=ancho - mpx(20))
+        caja._fuente = f
+        return caja, ent
+
     def _boton(self, parent, texto, cmd, primario=False):
         """Boton con las esquinas redondeadas (dibujado con Pillow), como los
         de Windows 11. Sin Pillow, un rectangulo plano como antes."""

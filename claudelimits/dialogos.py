@@ -406,12 +406,8 @@ class Dialogos:
         fila.pack(fill='x', padx=mpx(18), pady=(mpx(10), 0))
         muestra = tk.Label(fila, bg=T.MENU_BG, bd=0)
         muestra.pack(side='left')
-        marco = tk.Frame(fila, bg=T.MENU_HOVER)
-        marco.pack(side='left', fill='x', expand=True, padx=(mpx(10), 0))
-        ent = tk.Entry(marco, font=('Consolas', -mpx(13)), bg=T.MENU_HOVER,
-                       fg=T.MENU_FG, relief='flat', bd=0, highlightthickness=0,
-                       insertbackground=T.MENU_FG, width=10)
-        ent.pack(fill='x', padx=mpx(10), pady=mpx(7))
+        marco, ent = self._campo(fila, mpx(150), ('Consolas', -mpx(13)))
+        marco.pack(side='left', padx=(mpx(10), 0))
         fi = self._fuente_iconos()
         papelera = tk.Label(fila, text=('\uE74D' if fi else '\u2715'),
                             bg=T.MENU_BG, fg=T.MENU_MUTED, cursor='hand2',

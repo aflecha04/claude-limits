@@ -5,7 +5,8 @@ import threading
 import tkinter as tk
 
 from . import tema as T
-from .tema import apply_theme, apply_accent, apply_scale, px, mpx
+from .tema import (apply_theme, apply_accent, apply_scale, px, mpx,
+                   Image, ImageDraw, ImageTk)
 from .config import load_cfg, save_cfg
 from .sistema import round_corners
 
@@ -56,84 +57,127 @@ class Ajustes:
         dlg = getattr(self, '_szdlg', None)
         if dlg is not None and dlg.winfo_exists():
             dlg.lift(); dlg.focus_force(); return
-        ancho = mpx(260)
+        ancho = mpx(280)
         w = self._ventana('Tamaño', ancho)
         self._szdlg = w
         cuerpo = w._cuerpo
+        MIN, MAX = 70, 200
 
-        valor = tk.Label(cuerpo, text=f'{int(round(self.user_scale * 100))} %',
-                         bg=T.MENU_BG, fg=T.MENU_ACCENT,
-                         font=(T.FUENTE, -mpx(30), 'bold'))
-        valor.pack(pady=(mpx(6), mpx(2)))
+        # El numero grande: un clic y se puede escribir a mano
+        hueco = tk.Frame(cuerpo, bg=T.MENU_BG, height=mpx(52))
+        hueco.pack(fill='x', pady=(mpx(4), 0))
+        hueco.pack_propagate(False)
+        fuente_num = (T.FUENTE, -mpx(30), 'bold')
+        valor = tk.Label(hueco, bg=T.MENU_BG, fg=T.MENU_FG, font=fuente_num,
+                         cursor='xterm')
+        valor.pack(expand=True)
+        pista = tk.Label(cuerpo, text='Pulsa el número para escribirlo',
+                         bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -mpx(10)))
+        pista.pack(pady=(0, mpx(6)))
 
-        # deslizador dibujado a mano: el de Tk trae su propio aspecto y
-        # rompia la coherencia con el resto
-        cw, ch = ancho - mpx(36), mpx(30)
+        # Deslizador dibujado con Pillow (bordes suaves). El de antes iba con
+        # el lienzo de Tk, que dibuja los circulos con dientes de sierra.
+        cw, ch = ancho - mpx(40), mpx(28)
         lienzo = tk.Canvas(cuerpo, width=cw, height=ch, bg=T.MENU_BG,
                            highlightthickness=0, bd=0, cursor='hand2')
-        lienzo.pack(padx=mpx(18), pady=(0, mpx(2)))
-        MIN, MAX = 70, 200
-        r = mpx(7)
+        lienzo.pack(padx=mpx(20))
+        r = mpx(9)
+
+        def actual():
+            return int(round(self.user_scale * 100))
 
         def pinta():
-            v = int(round(self.user_scale * 100))
-            lienzo.delete('all')
-            cy = ch // 2
-            grueso = mpx(6)
-            # El canal va en el color del carril del widget, no en el de los
-            # separadores del menu: aquel apenas se distingue del fondo del
-            # dialogo y el deslizador parecia cortado a media altura.
-            lienzo.create_line(r, cy, cw - r, cy, fill=T.TRACK,
-                               width=grueso, capstyle='round')
-            t = (v - MIN) / (MAX - MIN)
-            x = r + t * (cw - 2 * r)
-            if x > r + 1:
-                lienzo.create_line(r, cy, x, cy, fill=T.MENU_ACCENT,
-                                   width=grueso, capstyle='round')
-            # tirador: aro del color del dialogo para separarlo del canal
-            lienzo.create_oval(x - r - mpx(2), cy - r - mpx(2),
-                               x + r + mpx(2), cy + r + mpx(2),
-                               fill=T.MENU_BG, outline='')
-            lienzo.create_oval(x - r, cy - r, x + r, cy + r,
-                               fill=T.MENU_ACCENT, outline='')
+            v = actual()
             valor.config(text=f'{v} %')
+            SS = 4
+            img = Image.new('RGB', (cw * SS, ch * SS), T.MENU_BG)
+            d = ImageDraw.Draw(img)
+            cy, g = ch * SS // 2, mpx(6) * SS
+            x0, x1 = r * SS, (cw - r) * SS
+            d.rounded_rectangle([x0 - g // 2, cy - g // 2, x1 + g // 2, cy + g // 2],
+                                radius=g // 2, fill=T.TRACK)
+            x = x0 + (x1 - x0) * (v - MIN) / (MAX - MIN)
+            d.rounded_rectangle([x0 - g // 2, cy - g // 2, x + g // 2, cy + g // 2],
+                                radius=g // 2, fill=T.MENU_ACCENT)
+            ro = r * SS
+            d.ellipse([x - ro, cy - ro, x + ro, cy + ro], fill=T.MENU_ACCENT)
+            ri = int(ro * 0.42)
+            d.ellipse([x - ri, cy - ri, x + ri, cy + ri], fill=T.TEXT_ON_FILL)
+            foto = ImageTk.PhotoImage(img.resize((cw, ch), Image.LANCZOS))
+            lienzo.delete('all')
+            lienzo.create_image(0, 0, anchor='nw', image=foto)
+            lienzo._foto = foto
 
-        def mueve(ev):
-            t = min(1.0, max(0.0, (ev.x - r) / max(1, cw - 2 * r)))
-            v = int(round((MIN + t * (MAX - MIN)) / 5.0)) * 5
-            if v != int(round(self.user_scale * 100)):
+        def poner(v):
+            v = max(MIN, min(MAX, int(v)))
+            if v != actual():
                 self._set_scale(v / 100.0, save=False)
             pinta()
 
+        def mueve(ev):
+            t = min(1.0, max(0.0, (ev.x - r) / max(1, cw - 2 * r)))
+            poner(int(round((MIN + t * (MAX - MIN)) / 5.0)) * 5)
+
         lienzo.bind('<Button-1>', mueve)
         lienzo.bind('<B1-Motion>', mueve)
+
+        # escribir el numero
+        edicion = {}
+
+        def editar(_e=None):
+            if edicion:
+                return
+            valor.pack_forget()
+            caja, ent = self._campo(hueco, mpx(120), fuente_num, centrado=True)
+            caja.pack(expand=True)
+            ent.insert(0, str(actual()))
+            ent.select_range(0, 'end')
+            ent.focus_set()
+            edicion['caja'] = caja
+
+            def cerrar(aplicar=True):
+                if not edicion:
+                    return
+                texto = ''.join(ch_ for ch_ in ent.get() if ch_.isdigit())
+                edicion.clear()
+                caja.destroy()
+                valor.pack(expand=True)
+                if aplicar and texto:
+                    poner(texto)
+                    if int(texto) < MIN or int(texto) > MAX:
+                        pista.config(text=f'Entre {MIN} y {MAX} %', fg=T.CLOSE_HOV)
+                        w.after(2500, lambda: pista.winfo_exists() and pista.config(
+                            text='Pulsa el número para escribirlo', fg=T.MENU_MUTED))
+                else:
+                    pinta()
+            ent.bind('<Return>', lambda e: (cerrar(True), 'break')[1])
+            ent.bind('<Escape>', lambda e: (cerrar(False), 'break')[1])
+            ent.bind('<FocusOut>', lambda e: cerrar(True))
+        valor.bind('<Button-1>', editar)
         pinta()
 
         ext = tk.Frame(cuerpo, bg=T.MENU_BG)
-        ext.pack(fill='x', padx=mpx(18))
-        tk.Label(ext, text='70 %', bg=T.MENU_BG, fg=T.MENU_MUTED,
+        ext.pack(fill='x', padx=mpx(20), pady=(mpx(2), 0))
+        tk.Label(ext, text=f'{MIN} %', bg=T.MENU_BG, fg=T.MENU_MUTED,
                  font=(T.FUENTE, -mpx(10))).pack(side='left')
-        tk.Label(ext, text='200 %', bg=T.MENU_BG, fg=T.MENU_MUTED,
+        tk.Label(ext, text=f'{MAX} %', bg=T.MENU_BG, fg=T.MENU_MUTED,
                  font=(T.FUENTE, -mpx(10))).pack(side='right')
 
-        def guardar():
-            self._guardar_apariencia()
-
         def hecho():
-            guardar()
+            self._guardar_apariencia()
             self._szdlg = None
             w.destroy()
 
         def restablecer():
-            self._set_scale(1.0, save=False)
-            pinta()
+            poner(100)
 
         bf = tk.Frame(cuerpo, bg=T.MENU_BG)
-        bf.pack(pady=(mpx(14), mpx(14)))
-        self._boton(bf, 'Restablecer', restablecer).pack(side='left', padx=mpx(5))
-        self._boton(bf, 'Hecho', hecho, primario=True).pack(side='left', padx=mpx(5))
+        bf.pack(fill='x', padx=mpx(20), pady=(mpx(16), mpx(16)))
+        self._boton(bf, 'Hecho', hecho, primario=True).pack(side='right')
+        self._boton(bf, 'Restablecer', restablecer).pack(side='right',
+                                                         padx=(0, mpx(8)))
         w.protocol('WM_DELETE_WINDOW', hecho)
-        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(200))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(230))
         round_corners(w)
         w.focus_force()
 
