@@ -34,7 +34,14 @@ class _CREDENTIALW(ctypes.Structure):
                 ('UserName', wintypes.LPWSTR)]
 
 
+_API = None
+
+
 def _api():
+    """advapi32 con sus firmas, preparado una sola vez (se usa cada 30 s)."""
+    global _API
+    if _API is not None:
+        return _API
     a = ctypes.WinDLL('advapi32', use_last_error=True)
     a.CredWriteW.argtypes = [ctypes.POINTER(_CREDENTIALW), wintypes.DWORD]
     a.CredWriteW.restype = wintypes.BOOL
@@ -45,6 +52,7 @@ def _api():
     a.CredDeleteW.restype = wintypes.BOOL
     a.CredFree.argtypes = [ctypes.c_void_p]
     a.CredFree.restype = None
+    _API = a
     return a
 
 

@@ -266,7 +266,9 @@ class Panel:
             pass
 
     def _panel_firma(self):
-        return (T.THEME, T.ACCENT_NAME, T.UI) + tuple(
-            (t, round(p, 1), countdown(r), self._ritmo_de(p, r, per)[1:],
-             round(self._ritmo_de(p, r, per)[0] or 0))
-            for t, p, r, per in self._panel_tarjetas())
+        firma = [T.THEME, T.ACCENT_NAME, T.BAR_START, T.UI]
+        for t, p, r, per in self._panel_tarjetas():
+            tiempo, adelantado, prev = self._ritmo_de(p, r, per)
+            firma.append((t, round(p, 1), countdown(r), adelantado, prev,
+                          round(tiempo or 0)))
+        return tuple(firma)

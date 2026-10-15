@@ -46,9 +46,6 @@ class Dibujo:
         iw, ih = T.W * SS, T.H * SS
         img = Image.new('RGBA', (iw, ih), (0, 0, 0, 0))
         d = ImageDraw.Draw(img)
-        # Un solo borde: antes la tarjeta se dibujaba metida un pixel y con
-        # contorno propio, asi que junto al canto de la ventana parecian dos
-        # marcos concentricos.
         # Sin borde propio: Windows 11 ya dibuja el canto de la ventana, y
         # dos bordes juntos se veian como un contorno sucio.
         d.rounded_rectangle([0, 0, iw - 1, ih - 1], radius=px(12) * SS,
@@ -220,7 +217,7 @@ class Dibujo:
         c.create_oval(x1 - 2 * r, y0, x1, y1, fill=color, outline=color, tags=tag)
         c.create_rectangle(x0 + r, y0, x1 - r, y1, fill=color, outline=color, tags=tag)
 
-    def _draw_bar(self, pct, col=None):
+    def _draw_bar(self, pct):
         """Fallback sin Pillow."""
         c = self.cv
         c.delete('bar')

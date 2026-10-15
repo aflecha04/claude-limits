@@ -26,7 +26,6 @@ from .posicion import Posicion
 class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
     """El widget."""
 
-class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
     def __init__(self):
         _dpi_aware()
 
