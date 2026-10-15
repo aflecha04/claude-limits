@@ -122,22 +122,25 @@ class Dialogos:
         w.protocol('WM_DELETE_WINDOW',
                    lambda: (setattr(self, '_dlg', None), w.destroy()))
 
-        tk.Label(cuerpo, text='Pega aquí tu sessionKey de claude.ai',
+        fila = tk.Frame(cuerpo, bg=T.MENU_BG)
+        fila.pack(fill='x', padx=mpx(18), pady=(mpx(6), 0))
+        tk.Label(fila, text='Pega aquí tu sessionKey de claude.ai',
                  bg=T.MENU_BG, fg=T.MENU_FG, font=(T.FUENTE, -mpx(12)),
-                 anchor='w').pack(fill='x', padx=mpx(14), pady=(mpx(6), 0))
-        tk.Label(cuerpo,
-                 text='En claude.ai: icono a la izquierda de la dirección  ›  '
-                      'Cookies  ›  sessionKey',
+                 anchor='w').pack(side='left')
+        # la "i": instrucciones paso a paso para cada navegador
+        fi = self._fuente_iconos()
+        info = tk.Label(fila, text=('\uE946' if fi else 'i'), bg=T.MENU_BG,
+                        fg=T.MENU_ACCENT, cursor='hand2',
+                        font=((fi, -mpx(15)) if fi else (T.FUENTE, -mpx(13), 'bold')))
+        info.pack(side='right')
+        info.bind('<Button-1>', lambda e: self._ayuda_clave())
+        tk.Label(cuerpo, text='¿No sabes dónde está? Pulsa la i y elige tu navegador.',
                  bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -mpx(10)),
-                 anchor='w', justify='left').pack(fill='x', padx=mpx(14),
-                                                  pady=(mpx(2), mpx(10)))
+                 anchor='w').pack(fill='x', padx=mpx(18), pady=(mpx(2), mpx(10)))
 
-        marco = tk.Frame(cuerpo, bg=T.MENU_HOVER)
-        marco.pack(fill='x', padx=mpx(14))
-        ent = tk.Entry(marco, show='\u2022', font=('Consolas', -mpx(12)),
-                       bg=T.MENU_HOVER, fg=T.MENU_FG, relief='flat', bd=0,
-                       highlightthickness=0, insertbackground=T.MENU_ACCENT)
-        ent.pack(fill='x', padx=mpx(10), pady=mpx(9))
+        marco, ent = self._campo(cuerpo, ancho - mpx(36), ('Consolas', -mpx(12)))
+        marco.pack(padx=mpx(18), anchor='w')
+        ent.configure(show='\u2022')
 
         msg = tk.Label(cuerpo, text='', bg=T.MENU_BG, fg=T.CLOSE_HOV,
                        font=(T.FUENTE, -mpx(10)), wraplength=ancho - mpx(30),
@@ -498,3 +501,118 @@ class Dialogos:
         w.focus_force()
         ent.focus_set()
         ent.icursor('end')
+
+    # ---- ayuda: donde esta la sessionKey ---------------------------------
+    PASOS_CLAVE = {
+        'Chrome': ('Ctrl + Mayús + I', 'Application', 'Aplicación'),
+        'Edge': ('Ctrl + Mayús + I', 'Application', 'Aplicación'),
+        'Brave': ('Ctrl + Mayús + I', 'Application', 'Aplicación'),
+        'Opera': ('Ctrl + Mayús + I', 'Application', 'Aplicación'),
+        'Firefox': ('Ctrl + Mayús + I', 'Storage', 'Almacenamiento'),
+    }
+
+    def _pasos_clave(self, nav):
+        atajo, pestana, pestana_es = self.PASOS_CLAVE[nav]
+        if nav == 'Firefox':
+            sitio = ('En la columna de la izquierda, despliega «Cookies» '
+                     '(pulsa la flechita) y pulsa «https://claude.ai».')
+        else:
+            sitio = ('En la columna de la izquierda, busca «Cookies» (dentro de '
+                     '«Storage» o «Almacenamiento»), despliégalo con la flechita '
+                     'y pulsa «https://claude.ai».')
+        return [
+            f'Abre claude.ai en {nav} y comprueba que has iniciado sesión con '
+            'tu cuenta.',
+            f'Pulsa la tecla F12 (o {atajo}). Se abre un panel con muchas '
+            'cosas técnicas: es normal, no hace falta tocar nada más.',
+            f'Arriba de ese panel, entra en la pestaña «{pestana}» '
+            f'(«{pestana_es}» si lo tienes en español). Si no la ves, pulsa '
+            'las flechas » para ver el resto de pestañas.',
+            sitio,
+            'En la lista que aparece, busca la fila que se llama sessionKey.',
+            'Haz doble clic en su valor (la columna «Value» o «Valor»), pulsa '
+            'Ctrl + A para seleccionarlo entero y Ctrl + C para copiarlo. '
+            'Empieza por sk-ant-.',
+            'Vuelve aquí, pégalo con Ctrl + V y pulsa Conectar. Ya puedes '
+            'cerrar el panel del navegador con F12.',
+        ]
+
+    def _ayuda_clave(self):
+        """Ventana de ayuda: eliges tu navegador y te dice, paso a paso,
+        como copiar la sessionKey."""
+        previa = getattr(self, '_ayudadlg', None)
+        if previa is not None and previa.winfo_exists():
+            previa.lift(); previa.focus_force(); return
+        ancho = mpx(440)
+        w = self._ventana('Cómo conseguir tu sessionKey', ancho)
+        self._ayudadlg = w
+        cuerpo = w._cuerpo
+        tk.Label(cuerpo, text='¿Qué navegador usas?', bg=T.MENU_BG,
+                 fg=T.MENU_MUTED, font=(T.FUENTE, -mpx(11)), anchor='w').pack(
+                     fill='x', padx=mpx(18), pady=(mpx(4), mpx(6)))
+        fila = tk.Frame(cuerpo, bg=T.MENU_BG)
+        fila.pack(fill='x', padx=mpx(18))
+        pasos = tk.Frame(cuerpo, bg=T.MENU_BG)
+        pasos.pack(fill='x', padx=mpx(18), pady=(mpx(12), 0))
+        aviso = tk.Label(cuerpo, bg=T.MENU_BG, fg=T.MENU_MUTED, anchor='w',
+                         justify='left', wraplength=ancho - mpx(36),
+                         font=(T.FUENTE, -mpx(10)),
+                         text='Esta clave es como la contraseña de tu cuenta '
+                              'de Claude: no la compartas ni la pegues en '
+                              'ningún otro sitio.')
+        elegido = {'nav': None}
+        chips = []
+
+        def mostrar(nav):
+            elegido['nav'] = nav
+            for chip, n in chips:
+                act = n == nav
+                chip.configure(bg=(T.MENU_ACCENT if act else T.MENU_HOVER),
+                               fg=(T.TEXT_ON_FILL if act else T.MENU_FG),
+                               font=(T.FUENTE, -mpx(12), 'bold' if act else 'normal'))
+            for h in pasos.winfo_children():
+                h.destroy()
+            for i, texto in enumerate(self._pasos_clave(nav), 1):
+                f = tk.Frame(pasos, bg=T.MENU_BG)
+                f.pack(fill='x', pady=(0, mpx(8)))
+                num = tk.Label(f, text=str(i), bg=T.MENU_BG, fg=T.TEXT_ON_FILL,
+                               font=(T.FUENTE, -mpx(11), 'bold'), compound='center')
+                im = self._color_img(T.MENU_ACCENT, False, T.MENU_BG)
+                if im is not None:
+                    num.configure(image=im)
+                    num._img = im
+                num.pack(side='left', anchor='n')
+                tk.Label(f, text=texto, bg=T.MENU_BG, fg=T.MENU_FG, anchor='w',
+                         justify='left', wraplength=ancho - mpx(80),
+                         font=(T.FUENTE, -mpx(12))).pack(
+                             side='left', fill='x', padx=(mpx(8), 0))
+            if not aviso.winfo_ismapped():
+                aviso.pack(fill='x', padx=mpx(18), pady=(mpx(4), 0))
+            w.update_idletasks()
+            w.geometry(f'{w.winfo_reqwidth()}x{w.winfo_reqheight()}')
+
+        for nav in self.PASOS_CLAVE:
+            chip = tk.Label(fila, text=nav, cursor='hand2', bg=T.MENU_HOVER,
+                            fg=T.MENU_FG, font=(T.FUENTE, -mpx(12)),
+                            padx=mpx(10), pady=mpx(5))
+            chip.pack(side='left', padx=(0, mpx(6)))
+            chip.bind('<Button-1>', lambda e, n=nav: mostrar(n))
+            chips.append((chip, nav))
+
+        bf = tk.Frame(cuerpo, bg=T.MENU_BG)
+        bf.pack(side='bottom', fill='x', padx=mpx(18), pady=(mpx(12), mpx(16)))
+        self._boton(bf, 'Entendido', lambda: (setattr(self, '_ayudadlg', None),
+                                               w.destroy()),
+                    primario=True).pack(side='right')
+        # el que use Windows por defecto, ya marcado
+        try:
+            from .login import _navegador_principal
+            exe = os.path.basename(_navegador_principal() or '').lower()
+        except Exception:
+            exe = ''
+        defecto = {'chrome.exe': 'Chrome', 'msedge.exe': 'Edge', 'brave.exe': 'Brave',
+                   'opera.exe': 'Opera', 'launcher.exe': 'Opera'}.get(exe, 'Chrome')
+        mostrar(defecto)
+        self._place(w, self.root.winfo_x() - mpx(60), self.root.winfo_y() - mpx(420))
+        round_corners(w)
+        w.focus_force()
