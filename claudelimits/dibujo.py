@@ -121,17 +121,21 @@ class Dibujo:
                                 radius=ancho // 2, fill=color)
 
         # Punto de aviso al final del carril: algun limite semanal o de un
-        # modelo esta agotado aunque la sesion de 5 h vaya bien. Sin el, solo
-        # te enterabas pasando el raton por encima. No se pinta si la propia
-        # sesion esta dormida: ahi la barra ya lo dice todo.
-        if self._limite_agotado() and not (pct is not None and pct >= 100):
+        # modelo (p. ej. Fable) esta agotado. Sin el, solo te enterabas
+        # pasando el raton por encima. Va en el color elegido; si el relleno
+        # ya llega hasta el (sesion casi llena o dormida), en el color del
+        # texto de la barra, con un aro del color elegido, para que se vea.
+        if self._limite_agotado():
             d = ImageDraw.Draw(img)
             r = px(3) * SS
             aro = max(2, SS * 3 // 2)
             cx, cy = self.bar_x1 * SS - rr, (y0 + y1) // 2
+            sobre_relleno = fw >= cx - r
+            punto = T.TEXT_ON_FILL if sobre_relleno else T.BAR_START
+            fondo_aro = T.BAR_START if sobre_relleno else T.TRACK
             d.ellipse([cx - r - aro, cy - r - aro, cx + r + aro, cy + r + aro],
-                      fill=T.TRACK)
-            d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=T.CLOSE_HOV)
+                      fill=fondo_aro)
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=punto)
 
         # El numero, dibujado aqui mismo y no por Windows: la parte sobre el
         # relleno en su color y la del carril en el del texto, recortadas con
