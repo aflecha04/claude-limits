@@ -6,6 +6,7 @@ import tkinter as tk
 from . import tema as T
 from .tema import px, _hex, _mix, HAVE_PIL, Image, ImageChops, ImageDraw, ImageTk
 from .mensajes import mensaje_dormido, MENSAJE_DORMIDO
+from .api import ritmo, PERIODO_SESION
 
 
 class Dibujo:
@@ -91,6 +92,11 @@ class Dibujo:
         # forzaba un verde fijo e ignoraba el acento del menu. El estado ya
         # lo dicen el rotulo 'Claude duerme' y el reloj de la cuenta atras.
         cs, ce = T.BAR_START, T.BAR_END
+        # si vas gastando mas deprisa de lo que pasa el tiempo, en rojo
+        r_ses = ritmo(pct, getattr(self, 'reset_iso', None), PERIODO_SESION)
+        self._adelantado = bool(r_ses and r_ses[1])
+        if self._adelantado:
+            cs = ce = T.ROJO
         fw = x0
         # relleno con degradado, recortado a pastilla redondeada
         if pct and pct > 0:
@@ -111,6 +117,18 @@ class Dibujo:
                 [0, 0, self.bar_x1 * SS - x0 - 1, h - 1], radius=rr, fill=255)
             mask = ImageChops.multiply(mask, carril)
             img.paste(grad, (x0, y0), mask)
+
+        # Rayita de tiempo: cuanto de la sesion de 5 h ha pasado ya. Sobre el
+        # relleno va en el color del texto de la barra, fuera en el del texto.
+        if r_ses and 0 < r_ses[0] < 100:
+            d = ImageDraw.Draw(img)
+            xm = int(round((self.bar_x0 + (self.bar_x1 - self.bar_x0)
+                            * r_ses[0] / 100.0) * SS))
+            ancho = max(SS, px(2) * SS // 2 * 2)
+            color = (('#ffffff' if self._adelantado else T.TEXT_ON_FILL)
+                     if xm < fw else T.TIME)
+            d.rounded_rectangle([xm - ancho // 2, y0 + SS, xm + ancho // 2, y1 - SS],
+                                radius=ancho // 2, fill=color)
 
         # Punto de aviso al final del carril: algun limite semanal o de un
         # modelo esta agotado aunque la sesion de 5 h vaya bien. Sin el, solo
@@ -301,7 +319,8 @@ class Dibujo:
         sub.delete('all')
         sub.create_image(-x0, -self.bar_y, image=img, anchor='nw')
         sub.create_text(tx - x0, cy - self.bar_y, text=texto, anchor='w',
-                        fill=T.TEXT_ON_FILL, font=fuente)
+                        fill=('#ffffff' if getattr(self, '_adelantado', False)
+                              else T.TEXT_ON_FILL), font=fuente)
 
     def _draw_labels(self):
         c = self.cv

@@ -30,6 +30,7 @@ THEMES = {
         INK='#f5f6f8', LABEL='#a3aab8', SUBTLE='#a3aab8',
         TRACK='#14171e', TRACK_SH='#0d1016', TIME='#cbd0db', BTN='#a3aab8', BTN_HOV='#ffffff', CLOSE_HOV='#ff6b7d',
         BAR_START='#e2683f', BAR_END='#b8492a',
+        ROJO='#e5484d',
         ALPHA=1.0,
     ),
     'light': dict(
@@ -37,12 +38,13 @@ THEMES = {
         ACCENT='#c2542f',
         TEXT_ON_FILL='#ffffff',
         MENU_BG='#fbfbfc', MENU_BD='#e2e8f0', MENU_FG='#1f2733',
-        MENU_MUTED='#5b6b82', MENU_HOVER='#fdf0ea', MENU_ACCENT='#c2542f',
+        MENU_MUTED='#5b6b82', MENU_HOVER='#eceef2', MENU_ACCENT='#c2542f',
         MENU_SEP='#eef1f6',
         TINT='#f9fafb', CARD_BD='#dde3ec',
         INK='#1f2733', LABEL='#5b6b82', SUBTLE='#5b6b82',
         TRACK='#dbe3ef', TRACK_SH='#c3cddd', TIME='#3f4a5c', BTN='#5b6b82', BTN_HOV='#0f172a', CLOSE_HOV='#d1344b',
         BAR_START='#c2542f', BAR_END='#96391d',
+        ROJO='#d1344b',
         ALPHA=1.0,
     ),
 }
@@ -52,7 +54,7 @@ TINT = CARD_BD = HILITE = INK = LABEL = SUBTLE = TRACK = TRACK_SH = ''
 TIME = BTN = BTN_HOV = CLOSE_HOV = BAR_START = BAR_END = ''
 MENU_BG = MENU_BD = MENU_FG = MENU_MUTED = MENU_HOVER = ''
 MENU_ACCENT = MENU_SEP = ''
-SH_DARK = SH_LIGHT = ACCENT = TEXT_ON_FILL = ''
+SH_DARK = SH_LIGHT = ACCENT = TEXT_ON_FILL = ROJO = ''
 PANEL_BG = TILE_BD = ''
 ALPHA = 0.93
 THEME = 'dark'

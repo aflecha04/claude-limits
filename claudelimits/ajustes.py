@@ -138,6 +138,9 @@ class Ajustes:
         w.focus_force()
 
     def _set_accent(self, nombre):
+        # para la papelera del color propio: volver al que habia antes
+        if nombre == 'propio' and T.ACCENT_NAME != 'propio':
+            self._accent_previo = T.ACCENT_NAME
         apply_accent(nombre)
         self.cv.itemconfig(self.id_close, fill=T.BTN)
         self._repintar_ventanas()
@@ -191,6 +194,8 @@ class Ajustes:
                 propio = T.ACCENTS.get('propio')
                 if propio:
                     cfg['accent_hex'] = propio[1][0]
+                else:
+                    cfg.pop('accent_hex', None)
                 cfg['scale'] = round(self.user_scale, 3)
                 save_cfg(cfg, durable=False)
         threading.Thread(target=_persist, daemon=True).start()

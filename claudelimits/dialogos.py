@@ -375,53 +375,91 @@ class Dialogos:
         w.focus_force()
 
     # ---- color propio --------------------------------------------------
+    MUESTRAS = ('#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e',
+                '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#a855f7', '#ec4899')
+
     def _color_dialog(self, e=None):
-        """Escribir el codigo de un color (#1e90ff) o elegirlo en la paleta
-        de Windows. Sin nada que instalar: la paleta es la del sistema."""
+        """Elegir un color propio: muestras para ir rapido o su codigo
+        (#1e90ff), con la papelera para borrarlo. Todo dibujado con el mismo
+        estilo del widget; nada que instalar."""
         previa = getattr(self, '_coldlg', None)
         if previa is not None and previa.winfo_exists():
             previa.lift(); previa.focus_force(); return
         w = self._ventana('Color personalizado', mpx(300))
         self._coldlg = w
         cuerpo = w._cuerpo
-        tk.Label(cuerpo, text='Escribe el código del color, por ejemplo #1e90ff',
-                 bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -mpx(11)),
-                 anchor='w').pack(fill='x', padx=mpx(14), pady=(mpx(4), mpx(8)))
+        propio = T.ACCENTS.get('propio')
+        elegido = {'c': propio[1][0] if propio else None}
 
+        # muestras de colores
+        rejilla = tk.Frame(cuerpo, bg=T.MENU_BG)
+        rejilla.pack(padx=mpx(14), pady=(mpx(6), mpx(4)))
+        botones = []
+        for i, c in enumerate(self.MUESTRAS):
+            b = tk.Label(rejilla, bg=T.MENU_BG, bd=0, cursor='hand2')
+            b.grid(row=i // 6, column=i % 6, padx=mpx(2), pady=mpx(2))
+            b.bind('<Button-1>', lambda e, c=c: poner(c))
+            botones.append((b, c))
+
+        # codigo + muestra + papelera
         fila = tk.Frame(cuerpo, bg=T.MENU_BG)
-        fila.pack(fill='x', padx=mpx(14))
-        muestra = tk.Frame(fila, width=mpx(34), height=mpx(34), bg=T.MENU_HOVER)
+        fila.pack(fill='x', padx=mpx(18), pady=(mpx(10), 0))
+        muestra = tk.Label(fila, bg=T.MENU_BG, bd=0)
         muestra.pack(side='left')
         marco = tk.Frame(fila, bg=T.MENU_HOVER)
         marco.pack(side='left', fill='x', expand=True, padx=(mpx(10), 0))
         ent = tk.Entry(marco, font=('Consolas', -mpx(13)), bg=T.MENU_HOVER,
                        fg=T.MENU_FG, relief='flat', bd=0, highlightthickness=0,
-                       insertbackground=T.MENU_FG)
-        ent.pack(fill='x', padx=mpx(10), pady=mpx(8))
-        propio = T.ACCENTS.get('propio')
-        ent.insert(0, propio[1][0] if propio else '#')
+                       insertbackground=T.MENU_FG, width=10)
+        ent.pack(fill='x', padx=mpx(10), pady=mpx(7))
+        fi = self._fuente_iconos()
+        papelera = tk.Label(fila, text=('\uE74D' if fi else '\u2715'),
+                            bg=T.MENU_BG, fg=T.MENU_MUTED, cursor='hand2',
+                            font=((fi, -mpx(14)) if fi else (T.FUENTE, -mpx(13))),
+                            padx=mpx(8))
+        if propio:
+            papelera.pack(side='left', padx=(mpx(4), 0))
+        papelera.bind('<Enter>', lambda e: papelera.configure(fg=T.CLOSE_HOV))
+        papelera.bind('<Leave>', lambda e: papelera.configure(fg=T.MENU_MUTED))
 
         msg = tk.Label(cuerpo, text='', bg=T.MENU_BG, fg=T.CLOSE_HOV,
                        font=(T.FUENTE, -mpx(10)), anchor='w')
-        msg.pack(fill='x', padx=mpx(14), pady=(mpx(6), 0))
+        msg.pack(fill='x', padx=mpx(18), pady=(mpx(4), 0))
 
-        def ver(_e=None):
-            c = T.normalizar_hex(ent.get())
-            muestra.configure(bg=(c or T.MENU_HOVER))
+        def repintar():
+            c = elegido['c']
+            for b, mc in botones:
+                im = self._color_img(mc, mc == c, T.MENU_BG)
+                if im is not None:
+                    b.configure(image=im)
+                    b._img = im
+                else:
+                    b.configure(text='\u25cf', fg=mc)
+            im = (self._color_img(c, False, T.MENU_BG) if c
+                  else self._color_mas_img(T.MENU_BG))
+            if im is not None:
+                muestra.configure(image=im)
+                muestra._img = im
+
+        def poner(c):
+            elegido['c'] = c
+            ent.delete(0, 'end')
+            ent.insert(0, c)
             msg.configure(text='')
-        ent.bind('<KeyRelease>', ver)
-        ver()
+            repintar()
 
-        def paleta():
-            from tkinter import colorchooser
-            actual = T.normalizar_hex(ent.get()) or '#1e90ff'
-            _rgb, elegido = colorchooser.askcolor(color=actual, parent=w,
-                                                  title='Elige un color')
-            if elegido:
-                ent.delete(0, 'end')
-                ent.insert(0, elegido)
-                ver()
-            w.lift()
+        def escrito(_e=None):
+            elegido['c'] = T.normalizar_hex(ent.get())
+            msg.configure(text='')
+            repintar()
+        ent.bind('<KeyRelease>', escrito)
+
+        def repintar_menu():
+            for r in list(getattr(self, '_mrep', [])):      # menu abierto
+                try:
+                    r()
+                except Exception:
+                    pass
 
         def aplicar():
             c = T.normalizar_hex(ent.get())
@@ -433,19 +471,32 @@ class Dialogos:
             self._coldlg = None
             w.destroy()
             self._set_accent('propio')
-            for repintar in list(getattr(self, '_mrep', [])):   # menu abierto
-                try:
-                    repintar()
-                except Exception:
-                    pass
+            repintar_menu()
+
+        def borrar(_e=None):
+            T.set_color_propio(None)
+            self._coldlg = None
+            w.destroy()
+            if T.ACCENT_NAME == 'propio' or 'propio' not in T.ACCENTS:
+                previo = getattr(self, '_accent_previo', None) or 'coral'
+                self._set_accent(previo if previo in T.ACCENTS else 'coral')
+            repintar_menu()
+        papelera.bind('<Button-1>', borrar)
+
+        if elegido['c']:
+            poner(elegido['c'])
+        else:
+            ent.insert(0, '#')
+            repintar()
 
         bf = tk.Frame(cuerpo, bg=T.MENU_BG)
-        bf.pack(pady=(mpx(12), mpx(14)))
-        self._boton(bf, 'Paleta…', paleta).pack(side='left', padx=mpx(5))
-        self._boton(bf, 'Aplicar', aplicar, primario=True).pack(side='left',
-                                                                padx=mpx(5))
+        bf.pack(fill='x', padx=mpx(18), pady=(mpx(10), mpx(16)))
+        self._boton(bf, 'Aplicar', aplicar, primario=True).pack(side='right')
+        self._boton(bf, 'Cancelar', lambda: (setattr(self, '_coldlg', None),
+                                              w.destroy())).pack(
+            side='right', padx=(0, mpx(8)))
         w.bind('<Return>', lambda e: aplicar())
-        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(170))
+        self._place(w, self.root.winfo_x(), self.root.winfo_y() - mpx(230))
         round_corners(w)
         w.focus_force()
         ent.focus_set()

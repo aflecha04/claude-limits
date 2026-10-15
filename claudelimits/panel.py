@@ -5,7 +5,8 @@ import tkinter as tk
 
 from . import tema as T
 from .tema import px, _hex, Image, ImageDraw, ImageTk
-from .api import cuota, campos_de_modelo, nombre_de_modelo, countdown
+from .api import (cuota, campos_de_modelo, nombre_de_modelo, countdown,
+                  ritmo, PERIODO_SESION, PERIODO_SEMANA)
 from .sistema import work_area, round_corners
 
 
@@ -59,8 +60,8 @@ class Panel:
     def _panel_maqueta(self, n):
         """Coordenadas de la maqueta, en pixeles logicos. Las comparten el
         fondo (Pillow) y los textos (tkinter), para que encajen exactos."""
-        MARGEN, GAP, ALTO = px(14), px(10), px(68)
-        ancho = max(T.W, px(264))
+        MARGEN, GAP, ALTO = px(14), px(10), px(84)
+        ancho = max(T.W, px(290))
         filas = []
         for i in range(n):
             y = MARGEN + i * (ALTO + GAP)
@@ -70,7 +71,7 @@ class Panel:
                 x0=MARGEN, x1=ancho - MARGEN, y0=y, y1=y + ALTO,
                 tx0=MARGEN + px(14), tx1=ancho - MARGEN - px(14),
                 y_tit=y + px(16), y_num=y + px(38),
-                y_bar=y + px(54), alto_bar=px(8)))
+                y_bar=y + px(54), alto_bar=px(8), y_prev=y + px(72)))
         return ancho, MARGEN * 2 + n * ALTO + max(0, n - 1) * GAP, filas
 
     def _panel_img(self, filas):
@@ -78,7 +79,8 @@ class Panel:
         que lo dibuja con el suavizado del sistema en vez de reducirlo
         desde una imagen a 4x."""
         clave = (T.THEME, T.ACCENT_NAME, T.W, T.UI,
-                 tuple(round(p, 1) for _t, p, _r in filas))
+                 tuple((round(p, 1), self._ritmo_de(p, r, per)[:2])
+                       for _t, p, r, per in filas))
         cache = getattr(self, '_panel_cache', None)
         if cache is None:
             cache = self._panel_cache = {}
@@ -92,7 +94,8 @@ class Panel:
         img = Image.new('RGBA', (ancho * SS, alto * SS),
                         _hex(T.PANEL_BG or T.TINT) + (255,))
         d = ImageDraw.Draw(img)
-        for (_titulo, pct, _res), m in zip(filas, maqueta):
+        for (_titulo, pct, res, periodo), m in zip(filas, maqueta):
+            tiempo, adelantado, _prev = self._ritmo_de(pct, res, periodo)
             d.rounded_rectangle([m['x0'] * SS, m['y0'] * SS,
                                  m['x1'] * SS, m['y1'] * SS],
                                 radius=px(12) * SS, fill=T.TINT,
@@ -106,13 +109,19 @@ class Panel:
             if pct and pct > 0:
                 total = bx1 - bx0
                 relleno = max(bh, int(round(total * min(pct, 100) / 100.0)))
-                cs, ce = T.BAR_START, T.BAR_END
+                cs = ce = T.ROJO if adelantado else T.BAR_START
                 grad = self._grad_strip(cs, ce).resize((relleno, bh),
                                                        Image.BILINEAR)
                 mask = Image.new('L', (relleno, bh), 0)
                 ImageDraw.Draw(mask).rounded_rectangle(
                     [0, 0, relleno - 1, bh - 1], radius=br, fill=255)
                 img.paste(grad, (bx0, by0), mask)
+            if tiempo is not None and 0 < tiempo < 100:
+                xm = int(bx0 + (bx1 - bx0) * tiempo / 100.0)
+                a = max(SS, px(2) * SS // 2 * 2)
+                d.rounded_rectangle([xm - a // 2, by0 - SS * 2, xm + a // 2,
+                                     by0 + bh + SS * 2], radius=a // 2,
+                                    fill=T.MENU_FG)
 
         out = img.resize((ancho, alto), Image.LANCZOS).convert('RGB')
         self._panel_photo = ImageTk.PhotoImage(out)
@@ -122,25 +131,41 @@ class Panel:
         cache[clave] = res
         return res
 
+    @staticmethod
+    def _ritmo_de(pct, res, periodo):
+        """(tiempo_pct, adelantado, prevision), con valores vacios si no hay."""
+        return ritmo(pct, res, periodo) or (None, False, '')
+
     def _panel_filas(self):
-        """[(titulo, pct, resets_at)] de los limites que NO son el de 5 h."""
+        """[(titulo, pct, resets_at, periodo)] de los limites que NO son
+        el de 5 h."""
         u = getattr(self, 'usage', None) or {}
         filas = []
         pct, res = cuota(u, 'seven_day')
         if pct is not None:
-            filas.append(('Límite semanal', pct, res))
+            filas.append(('Límite semanal', pct, res, PERIODO_SEMANA))
         for campo in sorted(campos_de_modelo(u)):
             if campo == 'seven_day':
                 continue
             pct, res = cuota(u, campo)
             if pct is not None:
-                filas.append((nombre_de_modelo(u, campo), pct, res))
+                filas.append((nombre_de_modelo(u, campo), pct, res,
+                               PERIODO_SEMANA))
         return filas
+
+    def _panel_tarjetas(self):
+        """Lo que se ve en el panel: la sesion de 5 h (para su prevision)
+        y despues los limites semanales."""
+        filas = []
+        if getattr(self, 'pct', None) is not None:
+            filas.append(('Sesión de 5 h', self.pct, self.reset_iso,
+                          PERIODO_SESION))
+        return filas + self._panel_filas()
 
     def _limite_agotado(self):
         """True si algun limite del panel (semanal o de un modelo) esta al 100 %."""
         try:
-            return any(p >= 100 for _t, p, _r in self._panel_filas())
+            return any(f[1] >= 100 for f in self._panel_filas())
         except Exception:
             return False
 
@@ -150,7 +175,7 @@ class Panel:
             return
         if getattr(self, '_arrastrando', False):
             return
-        filas = self._panel_filas()
+        filas = self._panel_tarjetas()
         self._panel_firma_actual = self._panel_firma()
 
         w = tk.Toplevel(self.root)
@@ -168,7 +193,7 @@ class Panel:
             _a, _h, maqueta = self._panel_maqueta(len(filas))
             dy_t = self._dy_optico(self.f_ptit)
             dy_n = self._dy_optico(self.f_pnum)
-            for (titulo, pct, res), m in zip(filas, maqueta):
+            for (titulo, pct, res, periodo), m in zip(filas, maqueta):
                 # un limite agotado lo dice con palabras: 'Agotado' en vez
                 # de '100%', y cuando vuelve en vez de solo el tiempo
                 agotado = pct >= 100
@@ -184,9 +209,15 @@ class Panel:
                 c.create_text(m['tx0'], m['y_num'] + dy_n,
                               text=('Agotado' if agotado else f'{pct:.0f}%'),
                               anchor='w', fill=T.MENU_FG, font=self.f_pnum)
+                _t, adelantado, prev = self._ritmo_de(pct, res, periodo)
+                if prev:
+                    c.create_text(m['tx0'], m['y_prev'] + dy_t, text=prev,
+                                  anchor='w', font=self.f_ptit,
+                                  fill=(T.ROJO if 'se agota' in prev
+                                        else T.MENU_MUTED))
             hijos = (c,)
         else:
-            pw = max(T.W, px(264))
+            pw = max(T.W, px(290))
             marco = tk.Frame(w, bg=T.TINT)
             marco.pack(fill='both', expand=True)
             tk.Label(marco, text='Sin límite semanal', bg=T.TINT, fg=T.INK,
@@ -244,4 +275,6 @@ class Panel:
 
     def _panel_firma(self):
         return (T.THEME, T.ACCENT_NAME, T.UI) + tuple(
-            (t, round(p, 1), countdown(r)) for t, p, r in self._panel_filas())
+            (t, round(p, 1), countdown(r), self._ritmo_de(p, r, per)[1:],
+             round(self._ritmo_de(p, r, per)[0] or 0))
+            for t, p, r, per in self._panel_tarjetas())

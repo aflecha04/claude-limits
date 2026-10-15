@@ -4,7 +4,7 @@
 import re
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from .config import load_cfg, save_cfg, poner_datos_cuenta
 
@@ -299,3 +299,52 @@ def nombre_corto_org(nombre):
     if '@' in corto:
         corto = corto.split('@')[0]
     return corto or nombre
+
+
+# ─── Ritmo de consumo ───────────────────────────────────────────────────
+# Cada limite dura un periodo fijo (la sesion, 5 horas; los semanales, 7
+# dias) y se sabe cuando acaba. Con eso se sabe cuanto del periodo ha pasado
+# y, comparado con lo gastado, si vas por delante del tiempo y cuando te
+# quedarias sin limite si sigues igual.
+PERIODO_SESION = 5 * 3600
+PERIODO_SEMANA = 7 * 86400
+_DIAS = ('lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom')
+MARGEN_ADELANTO = 3        # puntos de % por delante del tiempo para avisar
+
+
+def ritmo(pct, resets_at, periodo):
+    """(tiempo_pct, adelantado, prevision) o None si no se puede calcular.
+
+    tiempo_pct: % del periodo que ya ha pasado (donde va la rayita).
+    adelantado: True si llevas gastado mas de lo que ha pasado de tiempo.
+    prevision: texto corto con la prevision, o '' si aun es pronto.
+    """
+    if pct is None or not resets_at:
+        return None
+    restante = _reset_secs(resets_at)
+    if restante <= 0:
+        return None
+    restante = min(restante, periodo)
+    pasado = periodo - restante
+    tiempo_pct = 100.0 * pasado / periodo
+    # al principio del periodo cualquier uso parece mucho: no se avisa hasta
+    # que ha pasado un poco (15 min en la sesion, unas 8 h en la semana)
+    pronto = pasado < max(900, periodo * 0.05)
+    adelantado = (not pronto and pct < 100
+                  and pct > tiempo_pct + MARGEN_ADELANTO)
+    prevision = ''
+    if pct >= 100:
+        prevision = ''
+    elif pasado >= 600 and pct >= 2:          # antes, el ritmo no es fiable
+        seg_hasta_100 = (100 - pct) * pasado / pct
+        if seg_hasta_100 < restante:
+            fin = datetime.now().astimezone() + timedelta(seconds=seg_hasta_100)
+            hoy = datetime.now().astimezone().date()
+            if fin.date() == hoy:
+                cuando = f'a las {fin:%H:%M}'
+            else:
+                cuando = f'el {_DIAS[fin.weekday()]} a las {fin:%H:%M}'
+            prevision = f'A este ritmo se agota {cuando}'
+        else:
+            prevision = 'A este ritmo llegas bien al reinicio'
+    return tiempo_pct, adelantado, prevision

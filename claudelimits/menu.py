@@ -5,7 +5,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 
 from . import tema as T
-from .tema import mpx, ACCENTS, HAVE_PIL, Image, ImageDraw, ImageTk
+from .tema import mpx, _mix, ACCENTS, HAVE_PIL, Image, ImageDraw, ImageTk
 from .canal import VERSION, PRUEBA
 from .config import load_cfg
 from .api import nombre_org, nombre_corto_org
@@ -545,11 +545,7 @@ class Menu:
 
     # ---- piezas comunes de las ventanas --------------------------------
     def _ventana(self, titulo, ancho):
-        """Ventana sin marco de Windows, con el mismo lenguaje que el menu.
-
-        Las de antes usaban la barra de titulo del sistema y los controles
-        por defecto de Tk, que no se parecen en nada al resto del widget.
-        """
+        """Ventana sin marco de Windows, con el mismo lenguaje que el menu."""
         w = tk.Toplevel(self.root)
         w.overrideredirect(True)
         w.attributes('-topmost', True)
@@ -558,11 +554,14 @@ class Menu:
         cuerpo.pack(fill='both', expand=True, padx=1, pady=1)
 
         cab = tk.Frame(cuerpo, bg=T.MENU_BG)
-        cab.pack(fill='x', padx=(mpx(14), mpx(10)), pady=(mpx(10), mpx(2)))
+        cab.pack(fill='x', padx=(mpx(18), mpx(12)), pady=(mpx(14), mpx(4)))
         tk.Label(cab, text=titulo, bg=T.MENU_BG, fg=T.MENU_FG,
-                 font=(T.FUENTE, -mpx(13), 'bold')).pack(side='left')
-        cerrar = tk.Label(cab, text='\u2715', bg=T.MENU_BG, fg=T.MENU_MUTED,
-                          font=(T.FUENTE, -mpx(12)), cursor='hand2')
+                 font=(T.FUENTE, -mpx(14), 'bold')).pack(side='left')
+        fi = self._fuente_iconos()
+        cerrar = tk.Label(cab, text=('\uE8BB' if fi else '\u2715'),
+                          bg=T.MENU_BG, fg=T.MENU_MUTED, cursor='hand2',
+                          font=((fi, -mpx(10)) if fi else (T.FUENTE, -mpx(12))),
+                          padx=mpx(6), pady=mpx(4))
         cerrar.pack(side='right')
         cerrar.bind('<Button-1>', lambda e: w.destroy())
         cerrar.bind('<Enter>', lambda e: cerrar.configure(fg=T.CLOSE_HOV))
@@ -584,13 +583,37 @@ class Menu:
         return w
 
     def _boton(self, parent, texto, cmd, primario=False):
-        b = tk.Label(parent, text=texto, cursor='hand2',
-                     bg=(T.MENU_ACCENT if primario else T.MENU_HOVER),
-                     fg=(T.TEXT_ON_FILL if primario else T.MENU_FG),
-                     font=(T.FUENTE, -mpx(12), 'bold' if primario else 'normal'),
-                     padx=mpx(16), pady=mpx(7))
+        """Boton con las esquinas redondeadas (dibujado con Pillow), como los
+        de Windows 11. Sin Pillow, un rectangulo plano como antes."""
+        fuente = tkfont.Font(family=T.FUENTE, size=-mpx(12),
+                             weight=('bold' if primario else 'normal'))
+        normal = T.MENU_ACCENT if primario else T.MENU_HOVER
+        encima = _mix(normal, T.MENU_FG, 0.12)
+        texto_c = T.TEXT_ON_FILL if primario else T.MENU_FG
+        bw, bh = fuente.measure(texto) + mpx(34), mpx(32)
+        fondo = parent.cget('bg')
+
+        def imagen(color):
+            def dib(d, SS):
+                d.rounded_rectangle([0, 0, bw * SS - 1, bh * SS - 1],
+                                    radius=mpx(8) * SS, fill=color)
+            return self._img_cache(('btn', color, bw), dib, bw, bh, fondo)
+
+        im = imagen(normal)
+        if im is not None:
+            b = tk.Label(parent, text=texto, image=im, compound='center', bd=0,
+                         bg=fondo, fg=texto_c, font=fuente, cursor='hand2')
+            b._img = im
+
+            def pinta(color):
+                nueva = imagen(color)
+                b.configure(image=nueva)
+                b._img = nueva
+            b.bind('<Enter>', lambda e: pinta(encima))
+            b.bind('<Leave>', lambda e: pinta(normal))
+        else:
+            b = tk.Label(parent, text=texto, cursor='hand2', bg=normal,
+                         fg=texto_c, font=fuente, padx=mpx(16), pady=mpx(7))
+        b._fuente = fuente
         b.bind('<Button-1>', lambda e: cmd())
-        if not primario:
-            b.bind('<Enter>', lambda e: b.configure(bg=T.MENU_SEP))
-            b.bind('<Leave>', lambda e: b.configure(bg=T.MENU_HOVER))
         return b
