@@ -71,7 +71,7 @@ class Ajustes:
         valor = tk.Label(hueco, bg=T.MENU_BG, fg=T.MENU_FG, font=fuente_num,
                          cursor='xterm')
         valor.pack(expand=True)
-        pista = tk.Label(cuerpo, text='Pulsa el número para escribirlo',
+        pista = tk.Label(cuerpo, text='Pulsa el número para editar',
                          bg=T.MENU_BG, fg=T.MENU_MUTED, font=(T.FUENTE, -mpx(10)))
         pista.pack(pady=(0, mpx(6)))
 
@@ -147,7 +147,7 @@ class Ajustes:
                     if int(texto) < MIN or int(texto) > MAX:
                         pista.config(text=f'Entre {MIN} y {MAX} %', fg=T.CLOSE_HOV)
                         w.after(2500, lambda: pista.winfo_exists() and pista.config(
-                            text='Pulsa el número para escribirlo', fg=T.MENU_MUTED))
+                            text='Pulsa el número para editar', fg=T.MENU_MUTED))
                 else:
                     pinta()
             ent.bind('<Return>', lambda e: (cerrar(True), 'break')[1])
