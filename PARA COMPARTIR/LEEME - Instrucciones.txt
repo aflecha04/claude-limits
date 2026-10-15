@@ -1,5 +1,5 @@
 ===========================================================
-  Claude Limits v3.2
+  Claude Limits 1.0
   Widget de escritorio: uso y limites de tu cuenta de Claude
   (antes se llamaba ClaudeGlass)
 ===========================================================

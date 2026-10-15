@@ -1,4 +1,4 @@
-Claude Limits v3.2 (antes ClaudeGlass)
+Claude Limits 1.0 (antes ClaudeGlass)
 
 NUEVO
 - Nuevo nombre: Claude Limits.

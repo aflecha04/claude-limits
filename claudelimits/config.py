@@ -181,7 +181,7 @@ def load_cfg():
         if clave:
             data['session_key'] = clave
             if save_cfg(data) and not _BOVEDA_FALLA:
-                boveda.borrar(BOVEDA_CLAVE)       # la de la 3.2 sin cuentas
+                boveda.borrar(BOVEDA_CLAVE)       # la de antes de las cuentas
             LOADED_FROM, data = _leer_cascada(cfg_dirs())
             data = dict(data)
     data['cuentas'] = [dict(c) for c in data.get('cuentas') or []

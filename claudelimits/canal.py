@@ -13,7 +13,7 @@ desarrollo, con el argumento --prueba.
 import os
 import sys
 
-VERSION = '3.2'
+VERSION = '1.0'
 
 
 def _es_prueba():
