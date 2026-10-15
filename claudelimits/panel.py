@@ -115,9 +115,13 @@ class Panel:
             if tiempo is not None and 0 < tiempo < 100:
                 xm = int(bx0 + (bx1 - bx0) * tiempo / 100.0)
                 a = max(SS, px(2) * SS // 2 * 2)
+                # sobre el relleno, en el color del texto de encima del relleno
+                # (con el color blanco, una raya blanca no se veia)
+                lleno = pct and xm <= bx0 + (bx1 - bx0) * min(pct, 100) / 100.0
                 d.rounded_rectangle([xm - a // 2, by0 - SS * 2, xm + a // 2,
                                      by0 + bh + SS * 2], radius=a // 2,
-                                    fill=T.MENU_FG)
+                                    fill=(('#ffffff' if adelantado else T.TEXT_ON_FILL)
+                                          if lleno else T.MENU_FG))
 
         out = img.resize((ancho, alto), Image.LANCZOS).convert('RGB')
         self._panel_photo = ImageTk.PhotoImage(out)
