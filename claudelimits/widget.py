@@ -269,7 +269,10 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
     def _tick_actualizaciones(self):
         def mirar():
             nueva = actualizaciones.comprobar()
-            self.root.after(0, lambda: setattr(self, 'nueva_version', nueva))
+            try:
+                self.root.after(0, lambda: setattr(self, 'nueva_version', nueva))
+            except RuntimeError:
+                pass                       # el widget ya se habia cerrado
         threading.Thread(target=mirar, daemon=True).start()
         self.root.after(actualizaciones.COMPROBAR_MS, self._tick_actualizaciones)
 
