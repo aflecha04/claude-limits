@@ -5,7 +5,7 @@ import os
 import tkinter as tk
 
 from . import tema as T
-from .tema import px, _hex, _mix, HAVE_PIL, Image, ImageChops, ImageDraw, ImageTk
+from .tema import px, HAVE_PIL, Image, ImageChops, ImageDraw, ImageTk
 from .mensajes import mensaje_dormido, MENSAJE_DORMIDO
 from .api import ritmo, PERIODO_SESION
 
@@ -64,26 +64,19 @@ class Dibujo:
         cache[key] = img
         return img
 
-    @staticmethod
-    def _grad_strip(c1, c2):
-        """Tira de degradado 256x1, cacheada: interpolar y escalar es mucho
-        mas rapido que pintar cientos de lineas verticales."""
-        key = (c1, c2)
-        hit = Dibujo._GRAD_CACHE.get(key)
-        if hit is not None:
-            return hit
-        strip = Image.new('RGB', (256, 1))
-        pxl = strip.load()
-        a, b = _hex(c1), _hex(c2)
-        for i in range(256):
-            t = i / 255.0
-            pxl[i, 0] = tuple(int(round(a[j] + (b[j] - a[j]) * t)) for j in range(3))
-        Dibujo._GRAD_CACHE[key] = strip
-        return strip
-
-    _GRAD_CACHE = {}
-
     def _render_shapes(self, pct):
+        # Si no ha cambiado nada de lo que se ve, se reutiliza la imagen: la
+        # barra se repinta cada 30 s (y cada segundo con Claude dormido, por
+        # el reloj), pero casi nunca cambia de verdad.
+        r_ses = ritmo(pct, getattr(self, 'reset_iso', None), PERIODO_SESION)
+        firma = (T.THEME, T.ACCENT_NAME, T.BAR_START, T.W, T.H, pct, self._rotulo()[0],
+                 bool(r_ses and r_ses[1]),
+                 round(r_ses[0] * (self.bar_x1 - self.bar_x0) / 100.0) if r_ses else None,
+                 self._limite_agotado())
+        if firma == getattr(self, '_firma_barra', None) and getattr(self, '_shape_img', None):
+            return self._shape_img
+        self._firma_barra = firma
+
         SS = self.SS
         img = self._base_img().copy()
         x0 = self.bar_x0 * SS
@@ -94,18 +87,17 @@ class Dibujo:
         # lo dicen el rotulo 'Claude duerme' y el reloj de la cuenta atras.
         cs, ce = T.BAR_START, T.BAR_END
         # si vas gastando mas deprisa de lo que pasa el tiempo, en rojo
-        r_ses = ritmo(pct, getattr(self, 'reset_iso', None), PERIODO_SESION)
         self._adelantado = bool(r_ses and r_ses[1])
         if self._adelantado:
             cs = ce = T.ROJO
         fw = x0
-        # relleno con degradado, recortado a pastilla redondeada
+        # relleno liso, recortado a pastilla redondeada
+        mask = None
         if pct and pct > 0:
             fwf = self._fin_relleno(pct)
             fw = int(round(fwf * SS))
             w = max(1, fw - x0)
             h = y1 - y0
-            grad = self._grad_strip(cs, ce).resize((w, h), Image.BILINEAR)
             mask = Image.new('L', (w, h), 0)
             ImageDraw.Draw(mask).rounded_rectangle([0, 0, w - 1, h - 1],
                                                    radius=min(rr, w // 2),
@@ -117,7 +109,7 @@ class Dibujo:
             ImageDraw.Draw(carril).rounded_rectangle(
                 [0, 0, self.bar_x1 * SS - x0 - 1, h - 1], radius=rr, fill=255)
             mask = ImageChops.multiply(mask, carril)
-            img.paste(grad, (x0, y0), mask)
+            img.paste(cs, (x0, y0, x0 + w, y0 + h), mask)
 
         # Rayita de tiempo: cuanto de la sesion de 5 h ha pasado ya. Sobre el
         # relleno va en el color del texto de la barra, fuera en el del texto.
@@ -149,9 +141,7 @@ class Dibujo:
         # suavizado en gris. Con el texto de Windows (ClearType, que pinta
         # con subpixeles de color) el corte justo por el borde del relleno
         # dejaba una rayita roja o azul dentro de la cifra, p. ej. en un 11 %.
-        self._rotulo_pil = self._rotulo_en_imagen(img, fw if (pct and pct > 0) else 0,
-                                                  mask if (pct and pct > 0) else None,
-                                                  x0, y0, y1)
+        self._rotulo_pil = self._rotulo_en_imagen(img, mask, x0, y0, y1)
 
         out = img.resize((T.W, T.H), Image.LANCZOS)
         self._shape_img = ImageTk.PhotoImage(out)
@@ -183,7 +173,7 @@ class Dibujo:
         self._FUENTES_PIL[clave] = fuente
         return fuente
 
-    def _rotulo_en_imagen(self, img, fw, mask_relleno, x0, y0, y1):
+    def _rotulo_en_imagen(self, img, mask_relleno, x0, y0, y1):
         """Pinta el rotulo en la imagen (a 4x). True si lo ha pintado."""
         texto, fuente_tk = self._rotulo()
         tam = abs(int(fuente_tk.cget('size'))) * self.SS
@@ -243,7 +233,6 @@ class Dibujo:
         c.create_line(x0 + r, y0 + 2, x1 - r, y0 + 2, fill=T.TRACK_SH, tags='bar')
         if pct and pct > 0:
             fw = self._fin_relleno(pct)
-            span = fw - x0
             x = int(x0)
             end = int(round(fw))
             while x <= end:
@@ -255,9 +244,8 @@ class Dibujo:
                     dx = 0.0
                 if dx <= r:
                     hh = (r * r - dx * dx) ** 0.5
-                    t = min(1.0, max(0.0, (x - x0) / span))
                     c.create_line(x, cy - hh, x, cy + hh + 1,
-                                  fill=_mix(T.BAR_START, T.BAR_END, t), tags='bar')
+                                  fill=T.BAR_START, tags='bar')
                 x += 1
         c.tag_lower('card')
 

@@ -25,6 +25,7 @@ class Dialogos:
     def _toggle_autostart(self, e=None):
         activo = (autostart_estado() or '').lower() == _mi_ruta().lower()
         ok = autostart_activar(not activo)
+        self._arranca_cache = None             # el menu lo vuelve a leer
         cfg = load_cfg()
         cfg['autostart'] = (not activo)
         save_cfg(cfg, durable=False)

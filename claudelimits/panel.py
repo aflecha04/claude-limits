@@ -109,13 +109,9 @@ class Panel:
             if pct and pct > 0:
                 total = bx1 - bx0
                 relleno = max(bh, int(round(total * min(pct, 100) / 100.0)))
-                cs = ce = T.ROJO if adelantado else T.BAR_START
-                grad = self._grad_strip(cs, ce).resize((relleno, bh),
-                                                       Image.BILINEAR)
-                mask = Image.new('L', (relleno, bh), 0)
-                ImageDraw.Draw(mask).rounded_rectangle(
-                    [0, 0, relleno - 1, bh - 1], radius=br, fill=255)
-                img.paste(grad, (bx0, by0), mask)
+                color = T.ROJO if adelantado else T.BAR_START
+                d.rounded_rectangle([bx0, by0, bx0 + relleno - 1, by0 + bh - 1],
+                                    radius=br, fill=color)
             if tiempo is not None and 0 < tiempo < 100:
                 xm = int(bx0 + (bx1 - bx0) * tiempo / 100.0)
                 a = max(SS, px(2) * SS // 2 * 2)

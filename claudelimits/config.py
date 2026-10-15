@@ -115,8 +115,8 @@ def _atomic_write(path, obj, durable=True):
                 pass
     os.replace(tmp, path)
     if durable:
-        back = _read_json(path)                   # verificacion de relectura
-        if back.get('session_key') != obj.get('session_key'):
+        # verificacion de relectura: el archivo dice exactamente lo guardado
+        if _read_json(path) != json.loads(json.dumps(obj)):
             raise IOError('verificacion fallida')
     return True
 

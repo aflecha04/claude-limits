@@ -455,6 +455,14 @@ class Menu:
         self.root.after(250, _arm)
         return 'break'
 
+    def _arranca(self):
+        """Si arranca con Windows. Se lee del registro una vez por menu (y
+        tras cambiarlo), no cada vez que el raton pasa por la fila."""
+        if getattr(self, '_arranca_cache', None) is None:
+            self._arranca_cache = ((autostart_estado() or '').lower()
+                                   == _mi_ruta().lower())
+        return self._arranca_cache
+
     def _menu_sin_foco(self, e=None):
         """Cierra el menu solo si el foco se ha ido de verdad (a otro
         programa o al resto del escritorio), no por un cambio interno."""
@@ -528,10 +536,9 @@ class Menu:
 
         self._msep(body)
         self._mrow(body, 'Actualizar ahora', self.refresh, icono='actualizar')
+        self._arranca_cache = None
         self._mrow(body, 'Iniciar con Windows', self._toggle_autostart,
-                   icono='arranque',
-                   punto=lambda: ((autostart_estado() or '').lower()
-                                  == _mi_ruta().lower()))
+                   icono='arranque', punto=self._arranca)
         self._mrow(body, 'Diagnóstico', self._info_dialog, icono='diagnostico',
                    muted=True)
         self._mrow(body, 'Cerrar', self.close, icono='cerrar', muted=True)

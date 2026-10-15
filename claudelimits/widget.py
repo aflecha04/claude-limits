@@ -150,11 +150,22 @@ class Glass(Panel, Menu, Ajustes, Dibujo, Dialogos, Posicion):
 
     # ---- datos --------------------------------------------------------
     def refresh(self):
+        # una sola consulta a la vez: el temporizador y el boton Actualizar
+        # podian lanzar dos seguidas que se pisaban al guardar
+        if getattr(self, '_consultando', False):
+            return
+        self._consultando = True
         self._cargando = True
         self._draw_labels()          # el contador se atenua mientras consulta
         threading.Thread(target=self._fetch, daemon=True).start()
 
     def _fetch(self):
+        try:
+            self._fetch_una()
+        finally:
+            self._consultando = False
+
+    def _fetch_una(self):
         try:
             pct, reset_iso, data = fetch_session()
             self.root.after(0, self._apply, pct, reset_iso, None, data)
