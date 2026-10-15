@@ -184,10 +184,16 @@ class Dibujo:
             return False
         SS = self.SS
         tx = (self.bar_x0 + px(self.ROT_PAD)) * SS
-        cy = (y0 + y1) // 2
+        # Centrado por la TINTA, no por la caja de la letra: se mide lo que
+        # ocupa de verdad el texto (de lo alto de la cifra a la base) y se
+        # coloca su centro justo en el centro de la barra. Con el centrado
+        # tipografico ('lm') la cifra quedaba algo baja.
+        cy = (y0 + y1) / 2.0
+        _x0, arriba, _x1, abajo = fuente.getbbox(texto, anchor='ls')
+        base = int(round(cy - (arriba + abajo) / 2.0))
         letras = Image.new('L', img.size, 0)
-        ImageDraw.Draw(letras).text((tx, cy), texto, font=fuente, fill=255,
-                                    anchor='lm')
+        ImageDraw.Draw(letras).text((tx, base), texto, font=fuente, fill=255,
+                                    anchor='ls')
         sobre = ('#ffffff' if getattr(self, '_adelantado', False)
                  else T.TEXT_ON_FILL)
         if mask_relleno is not None:
