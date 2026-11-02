@@ -22,7 +22,9 @@ zip.
 
 ## Qué hace
 
-- Barra con el porcentaje de la sesión de 5 h y la cuenta atrás.
+- Barra con el porcentaje de la sesión de 5 h y la cuenta atrás
+  Si tu plan no tiene límite de 5 h (algunos de empresa), la barra
+  muestra el semanal.
 - Panel al pasar el ratón: límite semanal y por modelo, con previsión.
 - Punto de aviso en la barra si algún límite semanal está agotado.
 - Varias cuentas de Claude y cambio entre ellas desde el menú.
