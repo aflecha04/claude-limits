@@ -8,7 +8,7 @@ previsión de si llegarás al reinicio.
 ## Descargar e instalar
 
 1. Ve a [**Releases**](../../releases/latest) y descarga
-   `Claude-Limits-1.0.zip`.
+   `Claude-Limits-1.1.zip`.
 2. Descomprímelo entero en una carpeta.
 3. Doble clic en `INSTALAR.bat`.
 4. Pulsa **Abrir ventana** e inicia sesión en Claude como siempre: la ventana
