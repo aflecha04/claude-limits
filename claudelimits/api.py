@@ -138,7 +138,8 @@ def nombre_org(cfg):
 
 
 def fetch_session():
-    """Devuelve (pct:int, resets_at:str) de la sesion de 5 h, o lanza error."""
+    """Devuelve (pct:int, resets_at:str, datos) de la sesion de 5 h (o del
+    limite semanal si la cuenta no tiene de 5 h), o lanza error."""
     cfg = load_cfg()
     if not cfg.get('session_key'):
         raise NoKey('Falta sessionKey')
@@ -182,6 +183,12 @@ def fetch_session():
 
     data = normalizar_limites(json.loads(body))
     pct, reset = cuota(data, 'five_hour')
+    if pct is None:
+        # algunos planes (p. ej. de empresa) no tienen limite de 5 h, solo el
+        # semanal: 'five_hour' llega vacio. Entonces la barra muestra el
+        # semanal, en vez de quedarse en 'Sin conexion'.
+        pct, reset = cuota(data, 'seven_day')
+        data['solo_semanal'] = pct is not None
     if pct is None:
         raise RuntimeError('sin datos')
     return int(round(pct)), reset, data
@@ -292,6 +299,8 @@ def countdown_clock(iso_str):
     if secs <= 0:
         return '0:00:00'
     h = secs // 3600
+    if h >= 24:                    # limite semanal agotado: '3d 4h'
+        return countdown(iso_str)
     m = (secs % 3600) // 60
     s = secs % 60
     return f'{h}:{m:02d}:{s:02d}'

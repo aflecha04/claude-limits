@@ -8,7 +8,7 @@ previsión de si llegarás al reinicio.
 ## Descargar e instalar
 
 1. Ve a [**Releases**](../../releases/latest) y descarga
-   `Claude-Limits-1.0.zip`.
+   `Claude-Limits-1.1.zip`.
 2. Descomprímelo entero en una carpeta.
 3. Doble clic en `INSTALAR.bat`.
 4. Pulsa **Abrir ventana** e inicia sesión en Claude como siempre: la ventana
@@ -22,7 +22,9 @@ zip.
 
 ## Qué hace
 
-- Barra con el porcentaje de la sesión de 5 h y la cuenta atrás.
+- Barra con el porcentaje de la sesión de 5 h y la cuenta atrás
+  Si tu plan no tiene límite de 5 h (algunos de empresa), la barra
+  muestra el semanal.
 - Panel al pasar el ratón: límite semanal y por modelo, con previsión.
 - Punto de aviso en la barra si algún límite semanal está agotado.
 - Varias cuentas de Claude y cambio entre ellas desde el menú.
